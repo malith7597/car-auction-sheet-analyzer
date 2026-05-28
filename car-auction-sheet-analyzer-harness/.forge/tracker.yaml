@@ -1,0 +1,169 @@
+# [Project Name] — Tracker
+# Source of truth for project and feature status.
+# Leadership uses this for visibility. Claude updates this as part of every workflow action.
+#
+# Do not duplicate information that lives in spec/plan files.
+# This file tracks: what exists, what phase it's in, who owns it, what's blocking it.
+
+project: "[Project Name]"
+harness_version: "0.25.1"      # Last synced version from forge-harness template
+last_updated: "YYYY-MM-DDTHH:MM:SS"  # ISO 8601 timestamp
+
+# ------------------------------------------------------------------
+# Project Setup
+# ------------------------------------------------------------------
+# Pre-development readiness. Once all items are approved/complete
+# and features are populated below, the project moves to active.
+#
+# Statuses: not-started | in-progress | in-review | approved | done
+
+setup:
+  status: not-started        # not-started | in-progress | ready
+
+  project_prd:
+    status: not-started          # not-started | in-progress | gate1-passed | gate1-passed-with-risks | gate1-failed
+    last_gate_run: null          # ISO date of most recent /forge-prd-check full run
+    owner: null
+    notes: ""
+    accepted_risks: []           # populated by /forge-prd-check (full mode)
+    # Risk entry shape:
+    #   - id: R-PRD-001
+    #     description: "Short statement of the gap"
+    #     accepted_by: "Name"
+    #     accepted_date: "YYYY-MM-DD"
+    #     notes: "Reasoning, mitigation, follow-up trigger"
+
+  architecture:
+    status: not-started          # not-started | in-progress | gate2-passed | gate2-passed-with-risks | gate2-passed-with-spikes | gate2-failed
+    last_gate_run: null          # ISO date of most recent /forge-arch-probe full run
+    owner: null
+    notes: ""
+    accepted_risks: []           # populated by /forge-arch-probe (full mode)
+    spikes: []                   # populated by /forge-arch-probe (full mode)
+    # Spike entry shape:
+    #   - id: SP-ARCH-001
+    #     description: "Short statement of the deferred decision"
+    #     scoped_by: "Name"
+    #     scoped_date: "YYYY-MM-DD"
+    #     trigger: "Revisit when X happens (e.g., before first DB-touching feature)"
+
+  foundation:
+    # Scaffolding code built between Gate 2 and Gate 3.
+    # See docs/methodology/framework.md §4.10 in the harness repo for the full doctrine.
+    # Discipline rule: foundation = anything required to run the app and write a
+    # user-story feature spec. User-visible behavior with its own flows = feature.
+    status: not-started          # not-started | in-progress | done
+    last_updated: null           # ISO date when the slice list or status last changed
+    owner: null                  # Lead/dev responsible for the foundation phase as a whole (slice-level assignees live below)
+    backlog_source: ".forge/design/architecture.md → Foundation Backlog section"
+    review_completed: null       # ISO date of the manual foundation review session
+    review_audit_ref: null       # e.g., "engagement-gate-runs.md → Gate 3 Run 1 precondition note"
+    notes: "Blocked until architecture (Gate 2) passes; foundation backlog populated by /forge-arch-probe"
+    slices: []
+    # Slice entry shape:
+    #   - id: F-001
+    #     title: "App shell"
+    #     spec: .forge/specs/foundation/001-app-shell-spec.md
+    #     plan: .forge/plans/foundation/001-app-shell-plan.md
+    #     status: not-started      # not-started | spec | plan | dev | review | done
+    #     assignee: null
+    #     started: null            # ISO date
+    #     last_updated: null       # ISO date
+    #     notes: ""
+
+  decomposition:
+    status: not-started          # not-started | in-progress | gate3-passed | gate3-failed
+    last_gate_run: null          # ISO date of most recent /forge-decompose full run
+    owner: null
+    notes: "Blocked until PRD (Gate 1), architecture (Gate 2), and foundation (§4.10) all complete"
+
+  technical_decisions:
+    status: not-started
+    owner: null
+    notes: ""
+
+  claude_md:
+    status: not-started
+    owner: null
+    notes: ""
+
+  environment:
+    status: not-started
+    owner: null
+    notes: ""
+
+  feature_breakdown:
+    status: not-started
+    owner: null
+    notes: "Produced by /forge-decompose (Gate 3) — blocked until PRD and architecture pass their gates"
+
+# ------------------------------------------------------------------
+# Delivery Phases
+# ------------------------------------------------------------------
+# Stakeholder-facing delivery milestones. Each phase groups a set of
+# features that ship as one coherent, demonstrable slice. Phases are
+# layered ON TOP OF the dependency graph — dependencies still drive
+# sequencing within a phase; phases drive stakeholder narrative.
+#
+# Populated by /forge-decompose (Gate 3) after the slicing principle
+# and dependency graph are locked. Optional for small projects (under
+# ~10 features) — leave `phases: []` and the dashboard hides this view.
+#
+# Phase statuses:
+#   planning      — being shaped (during Gate 3 prep or replanning)
+#   in-progress   — currently active (exactly one phase at a time)
+#   complete      — sealed; `sealed: <ISO date>` must be set
+#   locked        — defined but not opened yet
+#
+# Invariant: at most one phase carries status `in-progress`, and
+# `current_phase` equals that phase's `id` (or null if no phase is
+# active). See .claude/rules/tracker.md "Delivery Phase Rules".
+#
+# Foundation slices (F-001..) are NOT delivery phases — they are
+# pre-feature scaffolding and live under `setup.foundation`.
+
+delivery:
+  current_phase: null            # int | null — id of the phase currently in-progress
+  phases: []
+  # Phase entry shape:
+  #   - id: 1
+  #     title: "Platform Core"
+  #     theme: "Short stakeholder-facing description of what this phase delivers"
+  #     status: planning         # planning | in-progress | complete | locked
+  #     started: null            # ISO date — set when status flips to `in-progress` (preserved on `complete`)
+  #     sealed: null             # ISO date — set when status flips to `complete`
+
+# ------------------------------------------------------------------
+# Features
+# ------------------------------------------------------------------
+# Populated by /forge-decompose (Gate 3) when the PRD is broken down into features.
+# Each feature follows: backlog -> spec -> plan -> dev -> review -> ship -> done
+# Exit states (from any phase): paused | dropped
+#
+# Artifact statuses (spec/plan): n/a | draft | in-review | approved
+# Priority: high | medium | low
+# delivery_phase: int referencing delivery.phases[*].id, or null if unassigned
+
+features: {}
+
+# Example entry (uncomment and copy when adding a feature):
+#
+#   example-feature:
+#     title: "Example Feature"
+#     jira: PROJ-123
+#     phase: backlog           # backlog|spec|plan|dev|review|ship|done|paused|dropped
+#     delivery_phase: null     # int referencing delivery.phases[*].id, or null
+#     owner: null              # Person accountable for landing this feature (matches PRD's Owner column)
+#     priority: medium
+#     started: null
+#     spec: n/a
+#     plan: n/a
+#     blocked_by: []
+#     last_updated: "YYYY-MM-DDTHH:MM:SS"
+#     notes: ""
+#
+# Field-name note: features use `owner:` (aligns with setup-level `owner` and the
+# /forge-decompose PRD's Owner column). Foundation slices under `setup.foundation`
+# use `assignee:` — that's slice-level role tracking, separate from feature ownership.
+# The dashboard reads `f.owner ?? f.assignee` so projects that predate this
+# convention still render correctly.
