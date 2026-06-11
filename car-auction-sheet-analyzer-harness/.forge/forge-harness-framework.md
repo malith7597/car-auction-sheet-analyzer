@@ -472,6 +472,28 @@ The workflow is presented as a linear sequence, but real delivery is not linear.
 
 The key principle: **every backward loop must leave a trace in the artifacts.** If the spec changed, the revision log shows it. If the plan changed, the notes section records why. If scope changed, the project brief reflects it. Without traces, the artifacts become unreliable and the "resume from files" promise breaks.
 
+### 2.13 Wave-Mode Delivery (the build-and-ship subsystem)
+
+The Spec → Plan bookends above are mode-agnostic. The **shipping** half — how an approved feature becomes merged code — runs in **wave mode**: a feature is decomposed into **waves**, and each wave ships to `main` as its own PR. The engagement opts in via `delivery.ship_unit: wave` in `tracker.yaml` (the default); a per-feature `features[<id>].ship_unit` overrides it, immutable once set at decomposition time. Two commands drive it — `/forge-wave-decompose` (spec → Decomposition Plan) and `/forge-deliver` (the 15-stage orchestrator) — and they dispatch a set of stack-specialist agents and inline skills. The design rationale lives in `docs/working/research/` (the wave-mode corpus).
+
+**The wave is the unit of shipment.** A wave is a *vertical capability slice* (DB-through-UI for one user-facing capability), not a layer (schema wave, then API wave, then UI wave). Each wave must satisfy a four-item ship-unit checklist — C1 main stays green, C2 no orphan scaffolding, C3 unfinished surfaces are flagged-or-inert, C4 the wave is a verifiable increment on `main` — or be explicitly declared `monolithic` with a legitimate reason. This is what keeps `main` always-deployable while a large feature lands incrementally.
+
+Five elements are **framework-level doctrine**, generic across any stack:
+
+- **The test-tier model — T1 / T2 / T3 / T-E2E.** T1 unit, T2 unit+integration, T3 unit+integration+WI-scope browser-E2E, T-E2E the full spec suite (its own final wave). Every work item declares a tier; `.forge/test-strategy.md` is the spine the agents, `forge-test-verify`, and each Decomposition Plan's Test Strategy Map hang on. The per-tier *toolchain* is project fill-in; the tier *vocabulary* is fixed.
+
+- **Contract-first integration.** Before any plan authoring, a wave with a BE↔FE seam freezes a validated, read-only **contract** (`forge-contract-author` → `Status: frozen`). Both sides then build against one fixed interface, so most "broke once wired" drift is gone before integration. The seam marker is the auto-proposed `type: verify` work item — contracts fire on exactly the seams decomposition flagged.
+
+- **The Dispatch Invariants (load-bearing execution limits, not style).** A dispatched sub-agent (1) cannot dispatch another sub-agent (no recursion), and (2) is torn down when it returns, so it cannot keep dev servers booted or drive a live browser across a run. Therefore the **verify/e2e agents AUTHOR + static-check tests only**, and the **persistent main orchestrator runs the live suites** and owns the run → classify → fix → re-run **auto-repair loop** (the "D11" loop): an in-wave test bug routes to the test specialist, an in-wave code bug to the owning implementer (bounded retries), and a pre-existing-code regression or contract defect escalates to a human. The three finalize-path skills (`forge-pr-open`, `forge-test-verify`, `forge-pre-pr-review`) must stay **non-dispatching** — implementer agents run them inline, and recursion would deadlock the finalize path.
+
+- **The within-wave coupling rule (L-027).** "All sub-work-items in a wave branch from `main` in parallel" holds only for a **cross-repo seam** (the sides compile independently and integrate over a serialized contract). A **same-repo compile-time** consumer→owner dependency must instead **stack** (the consumer's branch bases on the owner's) or **split across waves** — it cannot compile parallel-from-`main`. Decomposition classifies every shared contract as `seam` vs `compile` accordingly.
+
+- **The design vision pass (L-022).** For a wave that ships user-facing UI against a project design reference, the orchestrator screenshots each new/changed route and compares it to the design-of-record **before the wave PR opens** — a runtime backstop to spec-time prototype transcription that catches visual drift green tests mask.
+
+**Shipping shape.** Sub-work-items open transient per-WI review PRs; a two-pass integration merges them into a `feature/<ticket>-wave-<N>` branch; the **wave PR** (one per touched repo, base `main`) is the real ship surface and auto-closes the per-WI PRs as "superseded." Wave merge is a **human checkpoint** — the orchestrator halts after opening the wave PR and resumes on re-invocation after the human merges. `impl_status` runs `pending → dispatched → pr-open → wave-closed`; the orchestrator reconciles its tracker against GitHub + git ground truth on every invocation (Stage 0), so the flow is resumable from any stage.
+
+> **Feature mode is legacy and not part of this harness.** An earlier `/forge-feature-run` shipped a whole feature as one integration PR. Wave mode is its go-forward successor; the upstream workflow is self-contained on wave mode. `ship_unit: feature` remains a documented tracker value, but no feature-mode orchestrator ships here.
+
 ---
 
 ## 3. Workspace Structure
@@ -844,7 +866,7 @@ There must be a small explicit checklist defining what "checked" means on this p
 
 **Recommended gates** (use when applicable, skip with justification):
 
-- Security/vulnerability scan (dedicated command TBD) — recommended for auth, data handling, API endpoints
+- Security/vulnerability scan (dedicated command TBD) — recommended for auth, data handling, API endpoints. The supply-chain side of security — failing the build on vulnerable dependencies — is a *standing* Build & CI gate, not a per-feature judgment call; see §4.10.
 - Adversarial code review (dedicated command TBD) — recommended for complex features, architectural patterns
 - Browser QA (dedicated command TBD) — recommended for user-facing UI work
 
@@ -974,11 +996,13 @@ Most engagements have roughly six foundation slices, derived from the architectu
 1. **App shell** — framework boots, routing skeleton, env config, dev server runs
 2. **Data layer scaffolding** — DB connection, migration tooling, repository pattern (no entity migrations yet)
 3. **Design system primitives** — design tokens + atomic components
-4. **Build & CI** — lint, typecheck, tests, build all green on a hello-world commit
+4. **Build & CI** — lint, typecheck, tests, build all green on a hello-world commit; a **dependency-vulnerability gate** that fails the build on any dependency CVE at or above a configurable CVSS threshold
 5. **Observability stubs** — logger, error reporter, request tracing wired into the app
 6. **Developer onramp** — README + "how to add a feature" guide
 
 Architecture decides which apply to a given engagement. The enumerated list is captured in `architecture.md` under "Foundation Backlog" (see §4.9).
+
+**Dependency-vulnerability gate (recommended).** The Build & CI slice should wire a supply-chain scan (e.g. OWASP Dependency-Check) that *fails the build* when a resolved dependency carries a CVE at or above a configurable CVSS threshold — a sensible default is ≥ 7.0. The threshold is read from config, never hardcoded, so CI and per-environment overrides work. Each scanned repo carries a `dependency-check-suppressions.xml` to triage false positives: every entry is justified, suppressed by CVE *and* dependency coordinate, and ideally carries an expiry. Pick one tool and apply it uniformly across every repo in the engagement — a scan wired into one repo but not its sibling is a gap, not a gate. This is distinct from the per-feature application-security review (§ recommended gates): the supply-chain gate is *standing and automated* (it runs on every build), the application review is *per-feature and human*. A generic suppressions-file stub and governance note ship in the template under `.forge/security/`.
 
 #### Where foundation specs and plans live
 
@@ -1027,10 +1051,11 @@ Foundation status surfaces in `.forge/tracker.yaml` under `setup.foundation` (st
 
 A structured YAML file (`.forge/tracker.yaml`) that provides leadership visibility into project status without requiring access to Claude Code sessions or individual artifact files.
 
-The tracker has two layers:
+The tracker has three layers:
 
 - **Setup checklist** — pre-development readiness items (project brief, technical decisions, `CLAUDE.md`, environment, feature breakdown). Tracks whether the project is ready to begin feature work.
-- **Feature registry** — each feature's phase, assignee, priority, blockers, and artifact statuses. Populated at decomposition, updated throughout the workflow.
+- **Delivery phases** — stakeholder-facing milestones grouping features into demonstrable slices (see §4.11.1).
+- **Feature registry** — each feature's phase, assignee, priority, blockers, `delivery_phase`, and artifact statuses. Populated at decomposition, updated throughout the workflow.
 
 The update mechanism is a `CLAUDE.md` behavioral rule, not a skill or platform feature. Claude updates the tracker as part of any workflow action. Claude never assumes approval — it asks the developer to confirm status before recording it.
 
@@ -1040,6 +1065,55 @@ Phase gates are encoded as Claude behavior:
 - If the developer wants to skip a gate, Claude asks and records the override
 
 This gives the project gated phases enforced by the AI assistant — the same human gates from the workflow, just encoded as conversation behavior instead of platform features.
+
+#### 4.11.1 Delivery Phases
+
+A `delivery:` block in `tracker.yaml` groups features into stakeholder-facing milestones. Each phase is a demonstrable slice — sealing a phase produces something the team can show stakeholders. Phases are layered *on top of* the dependency graph: `blocked_by` still drives sequencing within a phase; phases drive the narrative across phases.
+
+*Why this exists:* generalized from a bespoke phasing pattern observed in early multi-engagement use — stakeholders and delivery managers wanted a "where are the project now and what ships next?" answer that the dependency graph and feature backlog alone could not give them in a glance.
+
+```yaml
+delivery:
+  current_phase: 1
+  phases:
+    - id: 1
+      title: "Platform Core"
+      theme: "Auth, org structure, navigation, shared schema"
+      status: in-progress
+      sealed: null
+    - id: 2
+      title: "Primary Workflow"
+      theme: "The core end-to-end user journey on top of the platform"
+      status: locked
+      sealed: null
+
+features:
+  feat-a:
+    delivery_phase: 1
+    phase: dev
+    ...
+```
+
+**Locked principles:**
+
+- **Phases are stakeholder narrative, not workflow gates.** They do not introduce a new gate; they re-group features that are already gated by spec → plan → implement → check → review → ship. The only enforcement is the *invariant* that exactly one phase is `in-progress` at a time.
+- **Phases are optional.** Projects under ~10 features can leave `delivery.phases: []`. The dashboard hides the delivery view in that case.
+- **Phases are project-defined.** Number, names, and themes are chosen at Gate 3. There is no canonical "Phase 1 / 2 / 3" — a project may pick MVP/V1.1/V2, or four phases, or one.
+- **Foundation is not a delivery phase.** Foundation slices (F-001..) live under `setup.foundation`. They are pre-feature scaffolding and ship before any delivery phase opens.
+- **Phase ordering respects dependencies.** Features in Phase N may only depend on features in Phase ≤ N. Gate 3 verifies this.
+
+**Lifecycle:** phases are populated by `/forge-decompose` (Gate 3). The first phase opens at `in-progress`; subsequent phases start `locked`. When every feature in the active phase is `done` or `dropped`, the developer confirms the seal — the phase flips to `complete` with `sealed: <date>`, the next phase flips to `in-progress`, and `current_phase` advances. The phase-sealing decision is always the developer's; Claude does not auto-seal.
+
+**Why phases.** The dependency graph answers *what blocks what*; the feature table answers *what exists*. Neither answers the delivery-head question *where is the project now and what ships next?* Phases are the layer that answers that — one line in the tracker (`current_phase: 2`) and a phase table in `features.md` are enough for stakeholders, delivery managers, and the team to share a common picture without reading specs.
+
+#### 4.11.2 Bugs & Rework Lineage
+
+The feature registry models work flowing *forward* (`spec → … → done`). Two things that happen *after* a feature ships have their own first-class home in the tracker:
+
+- **Bugs** live in a top-level `bugs:` collection (a sibling of `features:`, **not** nested under a feature). A defect is genuinely M:N — a shared primitive breaks several features at once — so a single-feature home is a false fit, and "what open bugs exist?" must be a flat query. A bug does **not** reopen its feature: the feature stays `done` while the bug carries its own `status` (`open → in-progress → fixed`/`wontfix`). The feature↔bug link is single-sourced from `bug.affects`. A bug's `delivery_phase` is its *scheduled-fix* milestone (defaults to the active phase; bump to defer), and a delivery phase cannot be sealed while an open/in-progress bug targets it. Structured metadata lives in the tracker; the repro/expected/actual/fix prose lives in `.forge/bugs.md`, one section per `id` (the `lessons.md` pattern). The fix flow is right-sized — **not** `forge-deliver`: the `bugs.md` entry is the spec, a plan is optional, a regression test + a pre-merge diff review (`/forge-review-pr` on the PR, or `/council`) are mandatory, branch `fix/BUG-NNN-<desc>`.
+- **Rework lineage** is an optional `follow_up_of: [feature-id…]` on a feature, naming the feature(s) it reworks ("a later pass over those"). It is distinct from `blocked_by` (dependency) and from a spec `## Revisions` entry (which also covers typos, so a Rev is not a rework signal). `follow_up_of` is authoritative; the reciprocal "reworked by" is derived.
+
+Both are surfaced on the dashboard (an **Open bugs** signal grouped by scheduled-fix phase, a **Rework** signal mapping rework features to what they rework) and governed by ASK-enforced rules in `.claude/rules/tracker.md`. They are backward compatible — absent keys render as before.
 
 ### 4.12 Engagement Gate Runs Log
 

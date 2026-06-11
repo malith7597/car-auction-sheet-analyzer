@@ -419,6 +419,9 @@ button { font-family: inherit; color: inherit; }
 .del-feat.no-who {
   grid-template-columns: 1.4fr 0.7fr 0.9fr 80px 70px 18px;
 }
+/* +1 track for the optional feature due-date column, only when present */
+.del-feat.has-due { grid-template-columns: 1.4fr 0.7fr 0.6fr 0.9fr 80px 70px 70px 18px; }
+.del-feat.no-who.has-due { grid-template-columns: 1.4fr 0.7fr 0.9fr 80px 70px 70px 18px; }
 .del-feat.no-who .who { display: none; }
 
 /* Blocked-by column — Patina chip per dep id. Empty when no blockers; the
@@ -449,6 +452,22 @@ button { font-family: inherit; color: inherit; }
   display: inline-block; color: var(--accent-warm); margin-left: 4px;
   cursor: help;
 }
+/* Open-bug badge + rework lineage line on a feature row (FR-7). Both live
+   inside the name cell so the rigid del-feat grid stays untouched. */
+.del-feat .name .bug-badge {
+  display: inline-flex; align-items: center; gap: 3px; margin-left: 6px;
+  padding: 1px 6px; border-radius: var(--r-pill);
+  background: var(--accent-warm-soft); color: var(--accent-warm);
+  border: var(--hair) solid var(--tertiary-300);
+  font-family: var(--font-mono); font-size: 10px; font-weight: var(--w-m);
+  vertical-align: middle; cursor: help;
+}
+.del-feat .name .rework-line {
+  display: block; margin-top: 3px;
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: var(--w-r);
+  color: var(--text-tertiary); letter-spacing: 0.01em;
+}
+.del-feat .name .rework-line.reworks { color: var(--primary-500); }
 .del-feat .phase {
   font-family: var(--font-mono); font-size: 10px;
   text-transform: uppercase; letter-spacing: 0.08em;
@@ -463,6 +482,7 @@ button { font-family: inherit; color: inherit; }
 :root[data-theme="dark"] .del-feat .phase.dev    { background: rgba(125,165,155,0.15); color: var(--primary-300); border-color: var(--primary-400); }
 :root[data-theme="dark"] .del-feat .phase.review { background: rgba(197,220,85,0.12); color: var(--tertiary-400); border-color: rgba(197,220,85,0.35); }
 .del-feat .who { color: var(--text-secondary); font-size: 12px; }
+.del-feat .due { color: var(--text-tertiary); font-family: var(--font-mono); font-size: 11px; white-space: nowrap; }
 .del-feat .ago { color: var(--text-tertiary); font-family: var(--font-mono); font-size: 11px; }
 .del-feat .caret { color: var(--text-tertiary); text-align: right; }
 
@@ -490,7 +510,7 @@ button { font-family: inherit; color: inherit; }
 .del-empty code { color: var(--accent-primary); font-size: 12.5px; }
 
 /* =========================================================
-   SIGNALS — 6 tiles
+   SIGNALS — 7 tiles
    ========================================================= */
 .signals-callout {
   border-left: 3px solid var(--accent-primary);
@@ -505,9 +525,10 @@ button { font-family: inherit; color: inherit; }
 .signals-callout strong { color: var(--text-primary); }
 
 .signals {
-  display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px 18px;
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 14px 18px;
   margin-top: 4px;
 }
+@media (max-width: 1180px) { .signals { grid-template-columns: repeat(4, 1fr); } }
 @media (max-width: 1024px) { .signals { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 600px)  { .signals { grid-template-columns: repeat(2, 1fr); } }
 .sig-lbl {
@@ -524,6 +545,41 @@ button { font-family: inherit; color: inherit; }
 
 .spark { display: inline-flex; gap: 2px; vertical-align: middle; margin-left: 6px; height: 14px; align-items: flex-end; }
 .spark i { display: block; width: 4px; background: var(--tertiary-400); border-radius: 1px; min-height: 1px; }
+
+/* Signals drill-downs (Bugs by scheduled-fix phase; Rework lineage). Collapsed
+   by default — the tiles carry the headline, these carry the detail. */
+.sig-drill {
+  margin-top: 16px; border-top: var(--hair) solid var(--border); padding-top: 12px;
+}
+.sig-drill + .sig-drill { margin-top: 10px; border-top: none; padding-top: 0; }
+.sig-drill summary {
+  cursor: pointer; font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: 0.04em; color: var(--text-secondary); user-select: none;
+}
+.sig-drill summary:hover { color: var(--text-primary); }
+.sig-drill[open] summary { margin-bottom: 8px; color: var(--text-primary); }
+.bug-group { margin: 8px 0 10px; }
+.bug-group-hd {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 4px;
+}
+.bug-group-hd em { color: var(--accent-primary); font-style: normal; }
+.bug-row {
+  display: flex; gap: 10px; align-items: baseline; padding: 3px 0;
+  font-size: 12px; color: var(--text-secondary);
+  border-bottom: var(--hair) dashed var(--border);
+}
+.bug-row:last-child { border-bottom: none; }
+.bug-id { font-family: var(--font-mono); color: var(--text-primary); font-weight: var(--w-m); white-space: nowrap; }
+.bug-title { flex: 1; min-width: 0; color: var(--text-primary); }
+.bug-affects { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
+.bug-sev {
+  font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
+  padding: 1px 6px; border-radius: var(--r-pill); white-space: nowrap;
+  border: var(--hair) solid var(--border); color: var(--text-tertiary);
+}
+.bug-sev.sev-high   { color: var(--accent-warm); background: var(--accent-warm-soft); border-color: var(--tertiary-300); }
+.bug-sev.sev-medium { color: var(--tertiary-700); background: var(--tertiary-50); border-color: var(--tertiary-300); }
 
 /* =========================================================
    USAGE — conditional one-liner
@@ -639,10 +695,17 @@ button { font-family: inherit; color: inherit; }
   </div>
   <section id="delivery-body" aria-label="Delivery"></section>
 
+  <!-- WAVE DRUMBEAT — conditional. Hidden unless ≥1 feature has waves[]. -->
+  <div class="sec hidden" id="wave-drumbeat-sec">
+    <span class="title">Wave Drumbeat</span>
+<span class="end" id="wave-drumbeat-end">—</span>
+  </div>
+  <section id="wave-drumbeat-body" class="hidden" aria-label="Wave drumbeat"></section>
+
   <!-- SIGNALS -->
   <div class="sec">
     <span class="title">Signals</span>
-<span class="end" id="signals-end">v1 · 6 indicators</span>
+<span class="end" id="signals-end">v1 · 7 indicators</span>
   </div>
   <section id="signals-body" aria-label="Signals"></section>
 
@@ -787,6 +850,33 @@ if (!TRACKER) {
   }
 
   /* =========================================================
+     BUGS + REWORK — derived from window.TRACKER (FR-2 / FR-5 / FR-7)
+     bugs[] and features[*].follow_up_of both live in tracker.yaml, mirrored
+     verbatim into window.TRACKER — so these are computed browser-side, with no
+     signals.js precomputation (unlike the markdown-derived lessons cadence).
+     ========================================================= */
+  const BUGS = Array.isArray(TRACKER.bugs) ? TRACKER.bugs : [];
+  const BUG_OPEN_STATES = ["open", "in-progress"];
+  function bugIsOpen(b) { return BUG_OPEN_STATES.includes(b.status); }
+
+  // feature id -> [open bug ids affecting it]  (FR-7 badge; affects is authoritative)
+  const openBugIdsByFeature = {};
+  BUGS.filter(bugIsOpen).forEach(b => {
+    (b.affects || []).forEach(fid => {
+      (openBugIdsByFeature[fid] = openBugIdsByFeature[fid] || []).push(b.id);
+    });
+  });
+
+  // feature id -> [feature ids that declare follow_up_of: [...this...]]
+  // The reciprocal "reworked by" marker, derived — follow_up_of is authoritative.
+  const reworkedByMap = {};
+  Object.entries(TRACKER.features || {}).forEach(([id, f]) => {
+    (f.follow_up_of || []).forEach(target => {
+      (reworkedByMap[target] = reworkedByMap[target] || []).push(id);
+    });
+  });
+
+  /* =========================================================
      PHASE / STATUS METADATA
      ========================================================= */
   const FEATURE_PHASES = ["backlog","spec","plan","dev","review","ship","done","paused","dropped"];
@@ -906,7 +996,8 @@ if (!TRACKER) {
     return {
       d, phases, phased, features, currentPhase, perPhase,
       totalFeatures, shipped, inFlight, paused, dropped, lockedFeats, remaining,
-      blocked, riskCount
+      blocked, riskCount,
+      anyFeatureDue: features.some(f => f.due_date != null)
     };
   }
 
@@ -1329,13 +1420,34 @@ if (!TRACKER) {
     const whoCell = omitWho
       ? ""
       : `<span class="who">${who ? escapeHtml(who) : "—"}</span>`;
+    // Open-bug badge + rework lineage (FR-7) — rendered inside the name cell so
+    // the rigid del-feat column grid is untouched.
+    const openBugIds = openBugIdsByFeature[f.id] || [];
+    const bugBadge = openBugIds.length
+      ? `<span class="bug-badge" title="Open bug${openBugIds.length > 1 ? "s" : ""}: ${escapeHtml(openBugIds.join(", "))}">🐞 ${openBugIds.length}</span>`
+      : "";
+    const reworksLine = (f.follow_up_of && f.follow_up_of.length)
+      ? `<span class="rework-line reworks" title="This feature reworks ${escapeHtml(f.follow_up_of.join(", "))}">↳ reworks ${escapeHtml(f.follow_up_of.join(", "))}</span>`
+      : "";
+    const reworkedByIds = reworkedByMap[f.id] || [];
+    const reworkedByLine = reworkedByIds.length
+      ? `<span class="rework-line" title="Reworked by ${escapeHtml(reworkedByIds.join(", "))}">↰ reworked by ${escapeHtml(reworkedByIds.join(", "))}</span>`
+      : "";
+    // Feature due-date column — shown only when at least one feature in the
+    // delivery has a date. Feature-level dates are optional (set via the
+    // /forge-set-dates command); when none are set the column is omitted.
+    const showDue = DEL.anyFeatureDue;
+    const dueCell = showDue
+      ? `<span class="due" title="${f.due_date ? "Target delivery " + escapeHtml(f.due_date) : "No target date"}">${f.due_date ? fmtDateShort(f.due_date) : "—"}</span>`
+      : "";
     return `
-      <div class="del-feat${omitWho ? ' no-who' : ''}" data-feature="${escapeHtml(f.id)}">
-        <span class="name">${escapeHtml(titleText)}</span>
+      <div class="del-feat${omitWho ? ' no-who' : ''}${showDue ? ' has-due' : ''}" data-feature="${escapeHtml(f.id)}">
+        <span class="name">${escapeHtml(titleText)}${bugBadge}${reworksLine}${reworkedByLine}</span>
         <span class="phase ${phase}">${escapeHtml(FEATURE_PHASE_LABEL[phase] || phase)}</span>
         ${whoCell}
         <span class="blocked-cell">${blockedHtml}</span>
         ${gateDots(gates)}
+        ${dueCell}
         <span class="ago">${relTime(f.last_updated) || "—"}</span>
         <span class="caret">→</span>
       </div>
@@ -1402,6 +1514,7 @@ if (!TRACKER) {
           <span class="del-tab-meta">
             <span class="del-bar"><span class="del-bar-fill" style="width: ${pct}%;"></span></span>
             <span>${pad2(shipped)}/${pad2(total)}</span>
+            ${p.due_date ? `<span class="del-tab-due" style="margin-left:auto; color: var(--text-tertiary);" title="Target delivery ${escapeHtml(p.due_date)}">due ${fmtDateShort(p.due_date)}</span>` : ""}
           </span>
         </button>
       `;
@@ -1448,6 +1561,7 @@ if (!TRACKER) {
       } else if (p.status === "planning") {
         headBits.push("planning");
       }
+      if (p.due_date) headBits.push(`due ${fmtDateShort(p.due_date)}`);
       if (p.theme) headBits.push(`<span class="theme">${escapeHtml(p.theme)}</span>`);
       const head = headBits.join(" · ");
 
@@ -1623,26 +1737,20 @@ if (!TRACKER) {
       s3 = { value: "—", sub: "no shipped features yet", placeholder: true };
     }
 
-    // S4 — Rework rate (from signals.js)
+    // S4 — Rework (rework features = non-empty follow_up_of; FR-5 / FR-8).
+    // Browser-computed from window.TRACKER, NOT signals.js. A spec/plan Rev no
+    // longer counts as rework — follow_up_of is the authoritative signal.
     let s4;
-    if (SIGNALS && SIGNALS.rework) {
-      const specRevs = (SIGNALS.rework.specs || []).map(r => r.revisions);
-      const planRevs = (SIGNALS.rework.plans || []).map(r => r.revisions);
-      if (specRevs.length === 0 && planRevs.length === 0) {
-        s4 = { value: "—", sub: "no specs or plans yet", placeholder: true };
-      } else {
-        const medS = specRevs.length ? median(specRevs) : null;
-        const medP = planRevs.length ? median(planRevs) : null;
-        const valBits = [];
-        if (medS != null) valBits.push(`${medS}`);
-        if (medP != null) valBits.push(`${medP}`);
-        const subBits = [];
-        if (medS != null) subBits.push(`spec rev`);
-        if (medP != null) subBits.push(`plan rev`);
-        s4 = { value: valBits.join(" · "), sub: `${subBits.join(" · ")} (median)` };
-      }
+    const reworkFeatures = features.filter(f => Array.isArray(f.follow_up_of) && f.follow_up_of.length > 0);
+    if (reworkFeatures.length === 0) {
+      s4 = { value: "—", sub: "no rework lineage yet", placeholder: true };
     } else {
-      s4 = { value: "—", sub: "signals.js missing", placeholder: true };
+      const targets = new Set();
+      reworkFeatures.forEach(f => f.follow_up_of.forEach(t => targets.add(t)));
+      s4 = {
+        value: `${pad2(reworkFeatures.length)}`,
+        sub: `reworking ${pad2(targets.size)} earlier feature${targets.size === 1 ? "" : "s"}`
+      };
     }
 
     // S5 — Paused / dropped ratio
@@ -1685,7 +1793,31 @@ if (!TRACKER) {
       s6 = { value: "—", sub: "no lessons data", placeholder: true };
     }
 
-    return { s1, s2, s3, s4, s5, s6 };
+    // S7 — Open bugs (FR-6). Browser-computed from window.TRACKER.bugs. Open =
+    // status ∈ {open, in-progress}. fixed/wontfix bugs stay in the collection as
+    // history but don't count here.
+    let s7;
+    const openBugs = BUGS.filter(bugIsOpen);
+    if (BUGS.length === 0) {
+      s7 = { value: "—", sub: "no bugs filed", placeholder: true };
+    } else if (openBugs.length === 0) {
+      s7 = { value: "00", sub: `all ${pad2(BUGS.length)} resolved` };
+    } else {
+      const sev = { high: 0, medium: 0, low: 0 };
+      openBugs.forEach(b => { if (sev[b.severity] != null) sev[b.severity]++; });
+      const affected = new Set();
+      openBugs.forEach(b => (b.affects || []).forEach(a => affected.add(a)));
+      const sevBits = [];
+      if (sev.high)   sevBits.push(`${sev.high} high`);
+      if (sev.medium) sevBits.push(`${sev.medium} med`);
+      if (sev.low)    sevBits.push(`${sev.low} low`);
+      s7 = {
+        value: `${pad2(openBugs.length)}`,
+        sub: `${sevBits.join(" · ") || "open"} · ${pad2(affected.size)} feature${affected.size === 1 ? "" : "s"}`
+      };
+    }
+
+    return { s1, s2, s3, s4, s5, s6, s7 };
   }
 
   function buildSignals() {
@@ -1694,15 +1826,16 @@ if (!TRACKER) {
       { id: "S1", lbl: "Phase throughput", data: sigs.s1 },
       { id: "S2", lbl: "Phase pace",       data: sigs.s2 },
       { id: "S3", lbl: "Lead time",        data: sigs.s3 },
-      { id: "S4", lbl: "Rework rate",      data: sigs.s4 },
+      { id: "S4", lbl: "Rework",           data: sigs.s4 },
       { id: "S5", lbl: "Paused / dropped", data: sigs.s5 },
-      { id: "S6", lbl: "Lessons cadence",  data: sigs.s6 }
+      { id: "S6", lbl: "Lessons cadence",  data: sigs.s6 },
+      { id: "S7", lbl: "Open bugs",        data: sigs.s7 }
     ];
 
     const callout = `
       <div class="signals-callout">
         <p><strong>Reading the signals:</strong> these establish a baseline and surface direction; none prove the harness is better or worse than not using it.</p>
-        <p>Lessons cadence dropping over time is <strong>good</strong> (stabilization). Rework rate dropping is good; rising can be thrash OR higher-quality specs catching more — needs a human read.</p>
+        <p>Lessons cadence dropping over time is <strong>good</strong> (stabilization). <strong>Rework</strong> counts features that redo earlier passes (<code>follow_up_of</code>); <strong>Open bugs</strong> are post-ship defects grouped by their scheduled-fix phase — expand the lists below the tiles.</p>
       </div>`;
 
     const grid = `
@@ -1716,7 +1849,52 @@ if (!TRACKER) {
         `).join("")}
       </div>`;
 
-    $("#signals-body").innerHTML = callout + grid;
+    $("#signals-body").innerHTML = callout + grid + buildBugsDrill() + buildReworkDrill();
+  }
+
+  // Bugs drill-down (FR-6): open bugs grouped by scheduled-fix delivery_phase, the
+  // current phase flagged. Collapsed by default; empty string when no open bugs.
+  function buildBugsDrill() {
+    const open = BUGS.filter(bugIsOpen);
+    if (open.length === 0) return "";
+    const groups = {};
+    open.forEach(b => {
+      const key = (b.delivery_phase == null) ? "—" : String(b.delivery_phase);
+      (groups[key] = groups[key] || []).push(b);
+    });
+    const keys = Object.keys(groups).sort((a, b) => {
+      const na = a === "—" ? Infinity : Number(a);
+      const nb = b === "—" ? Infinity : Number(b);
+      return na - nb;
+    });
+    const cur = (TRACKER.delivery && TRACKER.delivery.current_phase != null)
+      ? String(TRACKER.delivery.current_phase) : null;
+    const body = keys.map(k => {
+      const label = k === "—" ? "Unscheduled" : `Phase ${k}`;
+      const isCur = cur != null && k === cur;
+      const rows = groups[k].map(b => `
+        <div class="bug-row">
+          <span class="bug-id">${escapeHtml(b.id)}</span>
+          <span class="bug-sev sev-${escapeHtml(b.severity || "low")}">${escapeHtml(b.severity || "—")}</span>
+          <span class="bug-title">${escapeHtml(b.title || "")}</span>
+          <span class="bug-affects">${escapeHtml((b.affects || []).join(", "))}</span>
+        </div>`).join("");
+      return `<div class="bug-group"><div class="bug-group-hd">${label}${isCur ? " <em>· current</em>" : ""} · ${groups[k].length} open</div>${rows}</div>`;
+    }).join("");
+    return `<details class="sig-drill"><summary>🐞 ${open.length} open bug${open.length === 1 ? "" : "s"} — by scheduled-fix phase</summary>${body}</details>`;
+  }
+
+  // Rework drill-down (FR-8): each rework feature → the features it reworks.
+  function buildReworkDrill() {
+    const rework = DEL.features.filter(f => Array.isArray(f.follow_up_of) && f.follow_up_of.length > 0);
+    if (rework.length === 0) return "";
+    const rows = rework.map(f => `
+      <div class="bug-row">
+        <span class="bug-id">${escapeHtml(f.id)}</span>
+        <span class="bug-title">${escapeHtml(f.title || "")}</span>
+        <span class="bug-affects">↳ reworks ${escapeHtml(f.follow_up_of.join(", "))}</span>
+      </div>`).join("");
+    return `<details class="sig-drill"><summary>↳ ${rework.length} rework feature${rework.length === 1 ? "" : "s"} — lineage</summary>${rows}</details>`;
   }
 
   /* =========================================================
@@ -1856,12 +2034,195 @@ if (!TRACKER) {
   }
 
   /* =========================================================
+     WAVE DRUMBEAT (conditional — renders only when a feature
+     carries waves[]; hidden entirely in feature-mode projects)
+     ========================================================= */
+  function buildWaveDrumbeat() {
+    const features = Object.entries(TRACKER.features || {}).map(([id, f]) => ({ id, ...f }));
+    const featuresWithWaves = features.filter(f => Array.isArray(f.waves) && f.waves.length > 0);
+
+    // Conditional render — only show if at least one feature has waves[].
+    if (featuresWithWaves.length === 0) return;
+
+    const sec  = $("#wave-drumbeat-sec");
+    const body = $("#wave-drumbeat-body");
+    sec.classList.remove("hidden");
+    body.classList.remove("hidden");
+
+    // GitHub org/owner for click-through PR-search URLs. Read from
+    // window.TRACKER.github_org (a tracker.yaml field projects set). When unset,
+    // repo cells render as plain text rather than broken links.
+    const ORG = (TRACKER.github_org || "");
+
+    // Flatten all waves across features, normalized:
+    //   { featureId, waveNum, status, merged_at, deps, repos }
+    // `repos` is the union of workitems[*].touched_repos for that wave —
+    // used to compute per-repo click-through URLs.
+    const allWaves = [];
+    featuresWithWaves.forEach(f => {
+      (f.waves || []).forEach(w => {
+        const wis = Array.isArray(w.workitems) ? w.workitems : [];
+        const repos = Array.from(new Set(wis.flatMap(wi => Array.isArray(wi.touched_repos) ? wi.touched_repos : [])));
+        allWaves.push({
+          featureId: f.id,
+          featureTitle: f.title || "",
+          waveNum: w.wave,
+          status: w.status || "planned",
+          merged_at: w.merged_at || null,
+          deps: Array.isArray(w.depends_on) ? w.depends_on : [],
+          repos,
+        });
+      });
+    });
+
+    // --- "Today" list: waves whose `merged_at` is today's ISO date.
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const mergedToday = allWaves.filter(w => (w.merged_at || "").startsWith(todayIso));
+
+    // --- 14-day bar list: counts of waves merged per day, last 14 days.
+    function dayShift(iso, deltaDays) {
+      const d = new Date(iso + "T00:00:00");
+      d.setUTCDate(d.getUTCDate() + deltaDays);
+      return d.toISOString().slice(0, 10);
+    }
+    const last14 = [];
+    for (let i = 13; i >= 0; i--) {
+      const iso = dayShift(todayIso, -i);
+      const count = allWaves.filter(w => (w.merged_at || "").startsWith(iso)).length;
+      last14.push({ iso, count });
+    }
+    const maxCount = Math.max(1, ...last14.map(d => d.count));
+
+    // --- Median wave-to-wave merge latency over the last 30 days, per feature.
+    // For each feature with ≥2 merged waves in the last 30 days, compute
+    // pairwise (waves[N+1].merged_at - waves[N].merged_at) for sequentially
+    // numbered N, N+1, then aggregate medians across features. This merge-to-
+    // merge figure includes wave N+1's implementation time on top of the human
+    // handoff wait between merges — a coarse but informative wave-cadence proxy.
+    const cutoff30 = dayShift(todayIso, -29);
+    const latenciesDays = [];
+    featuresWithWaves.forEach(f => {
+      const merged = (f.waves || [])
+        .filter(w => w.status === "merged" && w.merged_at && w.merged_at >= cutoff30)
+        .sort((a, b) => a.wave - b.wave);
+      for (let i = 0; i < merged.length - 1; i++) {
+        const a = merged[i];
+        const b = merged[i + 1];
+        if (b.wave === a.wave + 1) {
+          const dayA = new Date(a.merged_at + "T00:00:00");
+          const dayB = new Date(b.merged_at + "T00:00:00");
+          const diffDays = Math.max(0, (dayB - dayA) / (1000 * 60 * 60 * 24));
+          latenciesDays.push(diffDays);
+        }
+      }
+    });
+    function medianOf(arr) {
+      if (arr.length === 0) return null;
+      const sorted = [...arr].sort((a, b) => a - b);
+      const m = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[m] : (sorted[m - 1] + sorted[m]) / 2;
+    }
+    const medianLatency = medianOf(latenciesDays);
+
+    // --- Wave-PR click-through URL helper. The tracker does not carry wave-PR
+    // URLs, so the link is a GitHub PR search by the wave's head branch.
+    function wavePrSearchUrl(repo, featureId, waveNum) {
+      const headSpec = encodeURIComponent(`head:feature/${featureId}-wave-${waveNum}`);
+      return `https://github.com/${ORG}/${repo}/pulls?q=is%3Apr+${headSpec}`;
+    }
+
+    // --- Repo cell: links when github_org is set, plain text otherwise.
+    function repoCell(repos, featureId, waveNum) {
+      if (repos.length === 0) return `<span style="color: var(--text-tertiary);">no touched repos recorded</span>`;
+      if (!ORG) return escapeHtml(repos.join(", "));
+      return repos.map(r => `<a href="${wavePrSearchUrl(r, featureId, waveNum)}" target="_blank" rel="noopener">${escapeHtml(r)}</a>`).join(", ");
+    }
+
+    // --- Status pill helper.
+    function waveStatusPill(s) {
+      switch (s) {
+        case "merged":      return `<span class="del-tab-status complete">● merged</span>`;
+        case "pr-open":     return `<span class="del-tab-status in-progress">◐ pr-open</span>`;
+        case "in-progress": return `<span class="del-tab-status in-progress">● in progress</span>`;
+        default:            return `<span class="del-tab-status">${escapeHtml(s)}</span>`;
+      }
+    }
+
+    // --- Render.
+    const totalMerged = allWaves.filter(w => w.status === "merged").length;
+    const totalOpen   = allWaves.filter(w => w.status === "pr-open").length;
+    $("#wave-drumbeat-end").textContent =
+      `${pad2(totalMerged)} merged · ${pad2(totalOpen)} pr-open` +
+      (medianLatency != null ? ` · median ${medianLatency.toFixed(1)}d wave-merge→wave-merge (30d)` : "");
+
+    // 14-day bar list.
+    const barHtml = last14.map(d => {
+      const heightPct = Math.round((d.count / maxCount) * 100);
+      const label = d.iso.slice(5);   // MM-DD
+      return `
+        <div class="wd-bar-col" title="${d.iso}: ${d.count} wave(s) merged">
+          <div class="wd-bar" style="height: ${Math.max(4, heightPct)}%"></div>
+          <div class="wd-bar-count">${d.count > 0 ? d.count : ""}</div>
+          <div class="wd-bar-label">${label}</div>
+        </div>`;
+    }).join("");
+
+    // Today list.
+    const todayHtml = mergedToday.length === 0
+      ? `<div class="del-empty">No waves merged today.</div>`
+      : mergedToday.map(w => `
+            <div class="wd-row">
+              <span class="wd-row-id"><b>${escapeHtml(w.featureId)}</b> wave ${w.waveNum}</span>
+              <span class="wd-row-title">${escapeHtml(w.featureTitle)}</span>
+              <span class="wd-row-repos">${repoCell(w.repos, w.featureId, w.waveNum)}</span>
+            </div>`).join("");
+
+    // Open / in-progress waves (live).
+    const liveWaves = allWaves.filter(w => w.status === "pr-open" || w.status === "in-progress");
+    const liveHtml = liveWaves.length === 0
+      ? ""
+      : `
+        <h4 class="wd-subhead">Live waves</h4>
+        ${liveWaves.map(w => {
+          const depsTxt = w.deps.length > 0 ? `deps: [${w.deps.join(", ")}]` : "no deps";
+          return `
+            <div class="wd-row">
+              <span class="wd-row-id"><b>${escapeHtml(w.featureId)}</b> wave ${w.waveNum}</span>
+              <span class="wd-row-title">${waveStatusPill(w.status)} · ${escapeHtml(depsTxt)}</span>
+              <span class="wd-row-repos">${repoCell(w.repos, w.featureId, w.waveNum)}</span>
+            </div>`;
+        }).join("")}`;
+
+    body.innerHTML = `
+      <style>
+        .wd-bars { display: flex; gap: 4px; align-items: flex-end; height: 96px; padding: 8px 0 0; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+        .wd-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+        .wd-bar { width: 100%; max-width: 24px; background: var(--accent-primary); border-radius: 2px 2px 0 0; min-height: 4px; }
+        .wd-bar-count { font-size: 10px; color: var(--text-secondary); height: 12px; }
+        .wd-bar-label { font-size: 9.5px; color: var(--text-tertiary); font-family: var(--font-mono); }
+        .wd-subhead { margin: 16px 0 6px; font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+        .wd-row { display: grid; grid-template-columns: 140px 1fr 180px; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 12.5px; align-items: baseline; }
+        .wd-row-id { font-family: var(--font-mono); font-size: 12px; }
+        .wd-row-title { color: var(--text-secondary); }
+        .wd-row-repos { font-size: 11.5px; text-align: right; }
+        .wd-row-repos a { color: var(--accent-primary); text-decoration: none; }
+        .wd-row-repos a:hover { text-decoration: underline; }
+      </style>
+      <div class="wd-bars" aria-label="14-day wave-merge bar chart">${barHtml}</div>
+      <h4 class="wd-subhead">Merged today (${mergedToday.length})</h4>
+      ${todayHtml}
+      ${liveHtml}
+    `;
+  }
+
+  /* =========================================================
      INIT
      ========================================================= */
   buildHero();
   buildKpis();
   buildSetup();
   buildDelivery();
+  buildWaveDrumbeat();
   buildSignals();
   buildUsage();
   buildActivity();

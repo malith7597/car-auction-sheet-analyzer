@@ -1,22 +1,25 @@
 ---
 name: forge-plan-review
 phases: [foundation, engineering]
-description: Multi-pass automated review of a draft Forge plan with fix cycles. Reads plan + spec + harness context, invokes the `plan-reviewer` sub-agent for each pass (Pass 1 audits; Pass 2 verifies fixes), applies Blocker/Important fixes between passes, converges to no-issues-or-nits-only (max 2 passes), then asks the human for final approval. On approval, flips status to `approved` + updates tracker. Use whenever a plan is at `Status: draft` or `in-review` and the user asks to review, self-review, or approve it. Plans only — for spec review, use `/forge-spec-review`.
+description: "Single-pass automated review of a draft Forge plan. Reads plan + spec + harness context, invokes the `plan-reviewer` sub-agent (audits once; main session applies Blocker/Important fixes), then asks the human for final approval. No verification re-audit — the human approval gate is the check on applied fixes. Detects sub-WI plans (tier-match / AC-coverage) and passes `ship_unit` so the wave vertical-shipping audit fires when the feature ships in waves. On approval, flips status to `approved` + updates tracker. Use whenever a plan is at `Status: draft` or `in-review` and the user asks to review, self-review, or approve it. Plans only — for spec review, use `/forge-spec-review`."
 ---
 
 # /forge-plan-review
 
-Automated multi-pass plan review with fix cycles. Replaces the manual review-fix-review-fix-review loop, enforcing structural independence on review (sub-agent runs in fresh context per pass) while keeping the human in the loop for final approval.
+Automated single-pass plan review. The `plan-reviewer` sub-agent audits in a fresh context; the main session applies Blocker/Important fixes; the human approves at the gate. No verification re-audit — the human approval gate is the check that applied fixes are sound. Enforcing structural independence on review (the sub-agent runs in a fresh context) while keeping the human in the loop for final approval.
 
 ## How to Use
 
 ```
-/forge-plan-review <plan-path>
+/forge-plan-review <plan-path>                          # interactive — human approves at convergence
+/forge-plan-review <plan-path> --auto-approve-on-clean  # auto-flip if the audit pass returns zero Blockers + zero Importants
 ```
 
 `<plan-path>` is the path to the plan file relative to the harness root, e.g. `.forge/plans/foundation/003-be-data-layer-plan.md`.
 
-If invoked without an argument, print usage and exit.
+`--auto-approve-on-clean` is the conservative-auto-flow mode used by `/forge-deliver`. It bypasses step 4.5's human prompt **only when the audit pass returns zero Blockers + zero Importants (no fixes needed)** — anything else, including a pass where fixes were applied, still asks. Nits do NOT block auto-approval; they're recorded in the final report for follow-up. See step 4.5 below for the exact gate.
+
+If invoked without a `<plan-path>`, print usage and exit.
 
 ## When to Use
 
@@ -68,16 +71,38 @@ SPEC_PATH="$(realpath "$SPEC_REL")"
 
 Identify relevant repo CLAUDE.md paths by grepping the plan body for repo CLAUDE.md references (e.g. `<backend-repo>/.claude/CLAUDE.md`, `<frontend-repo>/.claude/CLAUDE.md`). Substitute with the engagement's actual workspace paths. Resolve to absolute paths.
 
+Detect whether the plan under review is a **sub-WI plan** (used for test-tier cross-reference — feeds the reviewer's TC-2 tier-match and TC-3 AC-coverage checks in audit dimension §10):
+
+```bash
+# A plan is a sub-WI plan if its header contains a "> Key Workitem:" line
+KEY_WI_LINE=$(grep -m1 '^> Key Workitem:' "$PLAN_PATH")
+if [ -n "$KEY_WI_LINE" ]; then
+  # Extract the path — strip backticks and leading/trailing whitespace
+  KEY_WI_REL=$(echo "$KEY_WI_LINE" | sed 's/.*Key Workitem: //; s/`//g; s/[[:space:]]*$//')
+  KEY_WI_PATH="$(realpath "$KEY_WI_REL" 2>/dev/null)"
+  [ -f "$KEY_WI_PATH" ] || KEY_WI_PATH=""  # clear if path doesn't resolve
+fi
+# KEY_WI_PATH is now set (sub-WI plan) or empty (single-plan / Key Workitem itself)
+```
+
+Compute the **`ship_unit`** for the feature this plan belongs to — `wave` or `feature`. This gates the reviewer's audit dimension §11 (Wave Vertical-Shipping Audit), which runs only when `ship_unit == "wave"`. Read the engagement default from `.forge/tracker.yaml` `delivery.ship_unit`, then apply the per-feature override `features[<id>].ship_unit` if present (immutable once set). Default to `feature` when absent.
+
+```bash
+# Engagement default (wave | feature), then per-feature override if the plan
+# maps to a known feature id. Falls back to `feature` if the field is absent.
+SHIP_UNIT=$(yq -r '.delivery.ship_unit // "feature"' .forge/tracker.yaml 2>/dev/null || echo feature)
+# If the plan's feature id is known (e.g. from the Decomposition Plan / Key
+# Workitem header), prefer features[<id>].ship_unit when set:
+#   yq -r '.features["<feature-id>"].ship_unit // ""' .forge/tracker.yaml
+# Use that value if non-empty; otherwise keep the engagement default.
+[ -z "$SHIP_UNIT" ] && SHIP_UNIT=feature
+```
+
 Capture the lead's name from `git config user.name` for use later when filling the `Reviewed by:` line.
 
-### 3. Run review cycle
+### 3. Run the review
 
-Maintain:
-- `pass_counter` (starts at 1)
-- `all_findings[]` — append each pass's findings for the final report
-- `applied_fixes[]` — track what was changed each pass, to feed forward as `previous_findings` in the next pass
-
-Loop:
+This is a **single audit pass** — no verification re-audit and no loop. The sub-agent audits once; the main session applies Blocker/Important fixes; the human approval gate (step 4.5) is the check that the fixes are sound.
 
 #### a. Invoke the `plan-reviewer` sub-agent via the Task tool
 
@@ -89,49 +114,44 @@ Review this Forge plan. Inputs:
 - plan_path: <abs PLAN_PATH>
 - spec_path: <abs SPEC_PATH>
 - repo_claudemd_paths: <comma-separated abs paths>
-- pass_number: <pass_counter>
-- previous_findings: <on pass ≥ 2 only — short summary of prior-pass findings + what fixes were applied>
+- pass_number: 1
+- key_workitem_path: <abs KEY_WI_PATH, or omit this line if KEY_WI_PATH is empty>
+- ship_unit: <SHIP_UNIT — "wave" or "feature">
 
 Read the files. Audit per the dimensions in your sub-agent definition. Produce the Verdict + Findings table.
 ```
+
+The `key_workitem_path` (when present) lets the reviewer run TC-2 (tier matches Key Workitem assignment) and TC-3 (every owned AC has a mapped test) against the Decomposition Plan's `## Test Strategy Map`. The `ship_unit` value gates audit dimension §11 — when it is `wave`, the reviewer re-validates the plan against the Decomposition Plan's `## Wave Ship Plan` (verify-WI awareness, vertical-slice shipping). The reviewer's §12 design-conformance checks (DC-1 … DC-8, including DC-6/7/8 — prototype anatomy transcription, primitive conformance, reference-screen structural transcription) run for any user-visible WI **only if the project has a design reference**; they are skipped for backend-only WIs and for projects with no design system.
 
 Wait for the sub-agent's response. Parse:
 - The verdict line (`pass` | `pass-with-nits` | `fail-with-issues`)
 - The Blockers, Important, Nits tables
 
-Append to `all_findings[]`.
+Record the findings for the final report (`all_findings`).
 
-#### b. Convergence check
+#### b. Apply fixes
 
-- **Verdict `pass` or `pass-with-nits`** → exit loop. Proceed to step 4.
-- **`pass_counter ≥ 2` AND verdict `fail-with-issues`** → exit loop with verdict `manual-rewrite-needed`. Pass 1 audited, fixes were applied, Pass 2 verified — and issues still remain. Tell the human the plan likely needs structural rewrite, not further patches. Skip the auto-approval step (4.5); skill exits.
-- **Verdict `fail-with-issues`** (and `pass_counter < 2`) → apply fixes (next sub-step), increment `pass_counter`, loop back.
-
-#### c. Apply fixes
-
-For each Blocker and Important finding, apply the suggested fix using Edit (or MultiEdit when multiple edits are clustered).
+If the verdict is `fail-with-issues`, apply each Blocker and Important fix using Edit (or MultiEdit when multiple edits are clustered). If the verdict is `pass` or `pass-with-nits`, there is nothing to apply — proceed to step 4.
 
 Be judicious — the sub-agent's "Suggested fix" is directional:
 - If the suggestion is a wording change ("change X to Y"), apply directly.
 - If the suggestion is "rewrite the rationale to mention X", craft the rewrite with judgment. The sub-agent doesn't see the conversation history; you (main session) have full context — use it.
-- If two suggestions conflict (rare but possible), prefer the more conservative; document in `applied_fixes[]`.
+- If two suggestions conflict (rare but possible), prefer the more conservative; document in the report.
 
-**Skip Nits.** They're surfaced for human review at convergence.
+**Skip Nits.** They're surfaced for human review at the approval gate.
 
-After applying fixes, record `applied_fixes[pass_counter] = "Fixed B1, B2, I1, I3"` (or similar). Increment `pass_counter`. Loop back to (a).
+Record which findings were fixed (`applied_fixes = "Fixed B1, B2, I1, I3"`) for the final report, then proceed to step 4. Because there is no second pass, the applied fixes are **not** re-audited — the human approval gate is where any surviving issue is caught.
 
-### 4. Convergence reporting
+### 4. Review reporting
 
-Once the loop exits with `pass` or `pass-with-nits`, present the summary to the user. Format:
+After the audit pass (and any fixes), present the summary to the user. Format:
 
 ```markdown
-## Plan review converged after <N> pass(es)
+## Plan review complete (single pass)
 
-| Pass | Blockers | Important | Nits | Action |
-|---|---|---|---|---|
-| 1 | 3 | 6 | 4 | Fixed B1–B3, I1–I6 |
-| 2 | 1 | 2 | 3 | Fixed B1, I1–I2 |
-| 3 | 0 | 0 | 2 | Converged |
+| Blockers | Important | Nits | Action |
+|---|---|---|---|
+| 3 | 6 | 4 | Fixed B1–B3, I1–I6; 4 nits left for your call |
 
 ## Remaining nits (your call at approval)
 
@@ -143,9 +163,11 @@ Once the loop exits with `pass` or `pass-with-nits`, present the summary to the 
 
 If zero nits remain, omit the Remaining nits table — say "No remaining nits."
 
-### 4.5. Ask the human for approval
+### 4.5. Approval gate
 
-Present three options. **Never auto-approve.**
+**If `--auto-approve-on-clean` was passed AND the audit pass returned zero Blockers AND zero Importants** (Nits permitted, no fixes were needed), skip the human prompt and proceed directly to step 5 (option 1 — approve as-is). The Reviewed-via annotation in step 5b is amended to mark the auto-approval (see 5b for exact text). Any remaining nits are listed in the final report so the human can land them in a follow-up.
+
+**Otherwise** present three options:
 
 ```
 What would you like to do?
@@ -158,6 +180,8 @@ What would you like to do?
 **Rendering rule when zero nits remain:** omit option 2 from the prompt and renumber Reject as option 2 — present only two options. The "Apply nits then approve" path has nothing to do.
 
 Wait for the human to pick.
+
+The auto-approve gate is intentionally strict: **zero Blockers + zero Importants only**. If `--auto-approve-on-clean` was passed but the audit surfaced any Blocker or Important — even one that was then fixed — fall back to the human prompt. With no verification re-audit, a human confirms the applied fixes are sound before approval. This is the conservative-auto-flow's contract (per `/forge-deliver` docs).
 
 ### 5. On approval (option 1 or 2)
 
@@ -172,15 +196,25 @@ Use Edit to replace the existing header block with the approved version, **inclu
 ```markdown
 > Status: approved
 > Reviewed by: <lead-name> (lead)
-> Date: <drafted-date> (drafted) · <today> (approved after <N>-pass review)
-> Reviewed-via: /forge-plan-review (<N>-pass, <today>)
+> Date: <drafted-date> (drafted) · <today> (approved after single-pass review)
+> Reviewed-via: /forge-plan-review (single-pass, <today>)
 ```
+
+**Auto-approve variant** (when step 4.5's `--auto-approve-on-clean` gate triggered):
+
+```markdown
+> Status: approved
+> Reviewed by: <lead-name> (auto-approved on clean audit pass)
+> Date: <drafted-date> (drafted) · <today> (auto-approved after single-pass review)
+> Reviewed-via: /forge-plan-review (auto-approved, single-pass, <today>)
+```
+
+The `Reviewed-via:` annotation still matches `guard-plan-approval.sh`'s regex (`/forge-plan-review`), so the hook lets the edit through. The `(auto-approved, …)` suffix is the audit trail — anyone reading the plan or grep'ing the tracker can distinguish human-approved from auto-approved plans.
 
 Where:
 - `<lead-name>` = `git config user.name`
 - `<drafted-date>` = preserve from existing header (parse the existing Date line — usually `YYYY-MM-DD` only)
 - `<today>` = current date in `YYYY-MM-DD` form
-- `<N>` = pass count
 
 **Without the `Reviewed-via:` line, `guard-plan-approval.sh` will block the Edit and the skill will fail at this step.** The line is the evidence the hook checks for. The skill writes it; manual approvals trying to skip the cycle don't have it and get blocked.
 
@@ -210,7 +244,7 @@ Use `yq` if available, otherwise plain Edit on the YAML.
 
 - Plan: `<PLAN_PATH>` at `Status: approved`, reviewed by <lead-name>
 - Tracker: slice `<ID>` at `status: dev`, last_updated `<today>`
-- <N> review pass(es) total; <X> Blockers + <Y> Important fixed; <Z> Nits <addressed | left>
+- Single review pass; <X> Blockers + <Y> Important fixed; <Z> Nits <addressed | left>
 
 Working tree shows the changes uncommitted. Commit + PR per the standard
 workflow (e.g. `docs/<id>-plan-approved` branch).
@@ -237,9 +271,11 @@ The skill exits without flipping status or touching the tracker.
 ## Notes
 
 - **Idempotent.** Running on an already-approved plan aborts cleanly. Running on `in-review` continues from there. The skill only flips status on explicit human approval.
-- **Max 2 passes.** Pass 1 audits; main session applies fixes; Pass 2 verifies. If Pass 2 still returns `fail-with-issues`, the skill exits with `manual-rewrite-needed` — escalates to human judgment rather than continuing to iterate. The cap reflects what each pass actually buys: Pass 1 carries unique signal (the audit), Pass 2 carries unique signal (verify the fixes); Pass 3+ would be diminishing-returns cascade-detection and is better handled by the human at that point.
-- **No auto-approval.** Even if the first pass returns `pass` (zero of everything), the human is asked. The skill never silently flips status.
-- **Sub-agent independence.** Each pass invokes a fresh `plan-reviewer` context. The reviewer doesn't see the main session's history — it judges the plan as written, which is the point of the structural-independence design.
+- **Single pass.** The sub-agent audits once; the main session applies Blocker/Important fixes; the human approval gate is the check that the fixes are sound. There is no verification re-audit and no `manual-rewrite-needed` outcome — if the audit surfaces deep structural problems, the human rejects at the gate (option 3) and the plan is rewritten before re-running. Trade-off: lower token spend and faster turnaround; the cost is that applied fixes are not machine-verified, so the human gate carries more weight.
+- **Auto-approval is opt-in.** Without `--auto-approve-on-clean`, the human is always asked — even on a Pass 1 `pass`. With the flag, only zero-Blockers + zero-Importants converging passes auto-approve; everything else still asks. Auto-approved plans are explicitly marked in the `Reviewed-via:` annotation (`(auto-approved, …)` suffix) so the audit trail distinguishes them.
+- **Wave-mode audit is gated by `ship_unit`.** The reviewer's §11 Wave Vertical-Shipping Audit runs only when the dispatch passes `ship_unit: wave` (engagement default from `delivery.ship_unit`, overridden by `features[<id>].ship_unit`). For `ship_unit: feature` plans the reviewer skips §11 entirely. The skill computes the value; the reviewer never reads the tracker itself (it has no Edit/Write/yq surface).
+- **Sub-WI plans get extra checks.** When the plan header carries `> Key Workitem:` and `> WI ID:`, the skill resolves and passes `key_workitem_path` so the reviewer can run TC-2 (tier matches the Decomposition Plan's Test Strategy Map) and TC-3 (every owned AC has a mapped test). Plans without those header fields are reviewed as single-plan specs.
+- **Sub-agent independence.** The audit pass invokes a fresh `plan-reviewer` context. The reviewer doesn't see the main session's history — it judges the plan as written, which is the point of the structural-independence design.
 - **Nit threshold.** The sub-agent is instructed to keep nits to ≤3 per pass. Floods of nits signal the reviewer is being too pedantic — re-tune `plan-reviewer.md` if observed across multiple runs.
 - **Working tree assumption.** Skill operates on the working copy of the plan + tracker. Changes are uncommitted at exit; user commits + PRs separately. Skill does NOT push or open PRs on its own.
 - **Read-only fallback.** If invoked on a plan whose spec is missing or unreadable, abort with a clear message rather than running review on incomplete context.

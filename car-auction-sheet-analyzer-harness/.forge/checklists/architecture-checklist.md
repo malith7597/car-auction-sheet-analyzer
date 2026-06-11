@@ -38,6 +38,10 @@
 - [ ] Each external dependency justified vs. an in-house alternative
 - [ ] Rationale recorded for each external choice
 
+## Security & supply chain
+
+- [ ] Dependency-vulnerability CI gate planned in the Build & CI foundation slice — tool chosen (one tool applied uniformly across every repo), CVSS threshold + how it's made configurable, and per-repo `dependency-check-suppressions.xml` governance (justification + expiry per entry). See framework.md §4.10.
+
 ## Honesty
 
 - [ ] Architectural unknowns / TBDs explicitly listed
