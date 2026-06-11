@@ -32,4 +32,8 @@ Mixing live signals and audit trail into the PRD body bloats every read of the c
 
 | # | Section | Topic | Question | Status | Resolution / Owner | Blocks |
 |---|---------|-------|----------|--------|--------------------|--------|
-| | | | | | | |
+| OQ-1 | §Constraints > Tech Stack | Payment gateway | Which payment gateway(s) for Phase 1 — PayHere (LKR), Stripe (international cards), or both? Decision deferred to architecture phase. | ⏳ open | Product | f-007-b |
+| OQ-2 | §Constraints > Tech Stack | LLM provider | Which LLM for translation and extraction — OpenAI GPT-4o, Google Vertex AI, or equivalent? Final selection deferred to architecture phase. | ⏳ open | Engineering | f-003 |
+| OQ-3 | §Non-Functional Requirements > Security | Data retention policy | Define time-bound data retention and deletion policy for uploaded sheets and generated reports. Currently retained indefinitely. | ⏳ open | Product | — |
+| OQ-4 | §Functional Surface > Integration Points | Email provider | Which email provider for pipeline completion / failure notifications — AWS SES or SendGrid? Decision deferred to infrastructure setup. | ⏳ open | Engineering | f-010 |
+| OQ-5 | §Architecture > Deployment Topology | MongoDB hosting | AWS DocumentDB vs. MongoDB Atlas for report content storage. Decision deferred to infrastructure setup. | ⏳ open | Engineering | f-003, f-005 |
