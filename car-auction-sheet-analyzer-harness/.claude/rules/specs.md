@@ -1,11 +1,24 @@
 ---
-description: Feature spec lifecycle — revision convention, status transitions, rework triggers. Loads when editing files under .forge/specs/.
+description: Feature spec lifecycle — required sections, revision convention, status transitions, rework triggers. Loads when editing files under .forge/specs/.
 globs: .forge/specs/**
 ---
 
 # Spec Lifecycle Rules
 
 Section schema lives in `.forge/specs/_TEMPLATE-spec.md`. These are the *rules* for working with specs.
+
+## Required Sections
+
+Every spec must have all the following sections populated:
+
+- **Context** — why this feature exists, what problem it solves
+- **Requirements** — what the system must do (functional + non-functional)
+- **Acceptance Criteria** — how to verify each requirement. For user-facing features **with a design reference**, include **observable visual ACs**: name the token / layout / state — e.g. "Type badge uses the semantic tone in the design-system spec", not "looks good". A spec classified as a redesign (or otherwise carrying a prototype/mockup) references that artifact in `## Input Sources`. Projects with no design reference state functional ACs only.
+- **Scope Boundaries** — what is explicitly out of scope (both In Scope and Out of Scope listed)
+- **Constraints and Dependencies** — technical/business constraints, upstream dependencies
+- **Open Questions** — unresolved questions that must be answered before/during implementation
+- **Input Sources** — screenshots, flows, reference-system behaviors this spec is based on
+- **Revisions** — appended after approval when requirements change
 
 ## Status Transitions
 

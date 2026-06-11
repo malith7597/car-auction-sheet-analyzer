@@ -12,6 +12,7 @@
 
 ## Recommended Gates (use when applicable, skip with justification)
 
-- [ ] **Security/vulnerability scan** — recommended for auth, data handling, API endpoints
+- [ ] **Security/vulnerability scan (application code)** — recommended for auth, data handling, API endpoints
+- [ ] **Dependency-vulnerability CI gate (supply chain)** — standing Build & CI gate; fails the build on dependency CVEs ≥ a configurable CVSS threshold. Wired once in Foundation (see `.forge/security/` + framework §4.10). Confirm green per task — do not re-decide it each time.
 - [ ] **Adversarial code review** (dedicated command TBD; currently via direct conversation with Claude or `/council`) — recommended for complex features, architectural patterns
 - [ ] **Browser QA** — recommended for user-facing UI work

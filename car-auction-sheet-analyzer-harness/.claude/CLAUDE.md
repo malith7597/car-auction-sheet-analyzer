@@ -25,8 +25,18 @@
 ## Architecture Decisions (DO NOT REVERSE)
 <!-- Settled decisions with reasoning. Add to this as decisions are made. -->
 
-| # | Decision | Why | Date |
-|---|----------|-----|------|
+| # | Decision | Why | Reversible? | Date |
+|---|----------|-----|-------------|------|
+| 1 | Analysis pipeline is **asynchronous** via AWS SQS — Spring Boot enqueues jobs, FastAPI worker consumes them | Resilience, per-step retries, independent worker scaling; 30s pipeline with 3 external calls cannot safely block an HTTP request | ❌ Hard — async boundary is embedded across both services and the data model | 2026-05-31 |
+| 2 | **Spring Boot** owns API gateway, auth, credit, admin, WebSocket hub. **Python FastAPI** owns the pipeline worker | Language-optimal split: Java for transactional/auth, Python for AI/ML pipeline (PaddleOCR, LLM, mesh.ai) | ❌ Hard — service boundary refactor affects all inter-service contracts | 2026-05-31 |
+| 3 | **PostgreSQL** for transactional entities; **MongoDB** for Report content JSON | Relational integrity for billing/credits; schema-flexible document store for variable report output | ⚠️ Costly — DB migration is possible but expensive in data and code changes | 2026-05-31 |
+| 4 | **Spring Boot handles auth directly** — no managed auth provider (Cognito, Auth0) | Avoids external dependency and cost; team has Spring Security expertise | ✅ Moderate — can migrate to managed auth at session boundary with moderate effort | 2026-05-31 |
+| 5 | **JWT RS256** with claims `user_id`, `role`, `tenant_id`; RBAC enforced at Spring Security method level | Standard stateless auth pattern; role claim enables gateway-level enforcement | ✅ Moderate — token format can change at a version boundary; RBAC model is additive | 2026-05-31 |
+| 6 | **gRPC** for Spring Boot ↔ FastAPI direct calls (pipeline intervention, step completion callbacks) | Type-safe, performant inter-service protocol; both runtimes have mature gRPC support | ✅ Low — replaceable with REST/HTTP at service boundary without affecting other layers | 2026-05-31 |
+| 7 | **WebSocket** for real-time pipeline completion push to frontend | Eliminates polling; natural fit for async job notification | ✅ Low — replaceable with SSE or polling; isolated to notification layer | 2026-05-31 |
+| 8 | **GraphQL** for frontend → Spring Boot API communication | Flexible query model suits variable report data shapes; single endpoint | ⚠️ Costly — changing API contract requires coordinated frontend + backend migration | 2026-05-31 |
+| 9 | **Vite + React SPA** (no SSR) for frontend | SPA sufficient for authenticated app; simpler deployment (CloudFront + S3 static) | ✅ Moderate — SSR can be introduced incrementally (e.g., Next.js migration) | 2026-05-31 |
+| 10 | **No multi-tenancy in Phase 1** — every user is an individual account; tenant_id is null | Simplifies data model and auth; multi-tenancy introduced in Phase 2 | ✅ Planned — Phase 2 addition; tenant_id claim already in JWT for forward compatibility | 2026-05-31 |
 
 ## Reference Map
 
@@ -51,8 +61,8 @@
 | PRD trichotomy + OQ lifecycle rules | `.claude/rules/prd.md` (path-scoped — loads on `project-prd*.md`) |
 | Git / PR / worktree | `.claude/rules/git-conventions.md` |
 | Hook operator guide | `.claude/hooks/README.md` |
-| Backend repo | `<backend-repo>/CLAUDE.md` |
-| Frontend repo | `<frontend-repo>/CLAUDE.md` |
+| Backend repo | `../car-auction-sheet-backend/CLAUDE.md` |
+| Frontend repo | `../car-auction-sheet-frontend/CLAUDE.md` |
 | Session starter | `./forge-start.sh` |
 | Personal status-line installer (run once per developer machine) | `./install-personal-statusline.sh` — wires the Forge Heartbeat segment into your `~/.claude/statusline.sh`. Idempotent. After running once, every Forge harness on this machine automatically shows the `forge | …` segment on the left of your status line. |
 
@@ -67,6 +77,8 @@ Spec → Plan → Implement → Check → Review → Ship → Reflect
 ```
 
 For new projects: `Discovery → Project Brief → Decompose` runs once before the standard sequence begins.
+
+**Front door:** to drive a feature through this whole sequence, invoke **`/forge-deliver <ticket>`** — the orchestrator that runs Spec → … → Reflect with the gates and human checkpoints. Do not hand-run the per-phase skills (`forge-spec-author`, `forge-wave-decompose`, …) individually; `/forge-deliver` sequences them. (Asking in plain language — "how do I start `<ticket>`?" — routes you there via the `forge-feature-flow` skill.)
 
 | Phase | Output | Gate |
 |-------|--------|------|
@@ -89,7 +101,8 @@ For new projects: `Discovery → Project Brief → Decompose` runs once before t
 - Diff reviewed against spec and plan
 
 ### Recommended (skip with justification)
-- Security/vulnerability scan — for auth, data handling, API endpoints
+- Security/vulnerability scan (application code) — for auth, data handling, API endpoints
+- Dependency-vulnerability CI gate (supply chain) — standing Build & CI gate, fails the build on dependency CVEs ≥ a configurable CVSS threshold; wired once in Foundation (see `.forge/security/` + framework §4.10), confirmed green per task rather than re-decided
 - Adversarial code review — via direct conversation with Claude or `/council`
 - Browser QA — for user-facing UI work
 

@@ -135,6 +135,10 @@ Run all that apply to the PR's class.
   - **Persistence boundaries** — direct SQL vs. ORM, raw client SDK imports the architecture forbids, etc.
 - Walk harness CLAUDE.md NEVER DO list against the diff.
 
+**Dispatch the `backend-reviewer` sub-agent for backend diffs.** When the code PR touches files under `<backend-repo>/`, dispatch the `backend-reviewer` agent (in `.claude/agents/`) via the Task tool to get a framework-specific second opinion on the backend surface — layering / dependency direction, transaction & atomicity boundaries, ORM pitfalls (N+1, lazy-loading, cascade traps), auth coverage on new endpoints, exception swallowing, DI hygiene, concurrency, and migration safety. The agent is stack-neutral by construction: it reads the repo's **Stack Profile** (`<backend-repo>/.claude/CLAUDE.md` `## Backend Stack`) on turn 1 to calibrate its checks to the actual framework / ORM / language in play, rather than assuming a stack. It is **read-only** — it returns a findings table + verdict; you fold its findings into the verdict below (mapping its Blocker/Important/Nit severities onto this command's verdict buckets). Pass it the diff and changed-file paths in the dispatch prompt — each invocation is fresh-context with no memory of this session.
+
+Dispatch the agent **once per backend-touching PR**, after the inline checks above, before the adversarial pass in step 6 — its findings are inputs the adversarial pass should hold in mind (don't re-derive them). If the PR has no backend surface, skip the dispatch. (There is no equivalent frontend-reviewer dispatch — the frontend surface is reviewed inline plus the adversarial pass.)
+
 ### 6. Adversarial pass
 
 Run an adversarial pass over the PR. The framework checks in step 5 are pattern-matched against known defects; the adversarial pass is the open-ended "what else could be wrong here" sweep.
@@ -149,7 +153,7 @@ Otherwise, work through this checklist with the inputs already gathered (don't r
 
 - Read the full diff (compute from `<merge-base>..origin/<headRefName>` if not already loaded).
 - Re-read the Forge artifacts identified in step 3 with the diff in mind.
-- Hold the staleness, companion, and quality-check findings from steps 2, 4, 5 in mind so you don't re-derive them — focus on what's left.
+- Hold the staleness, companion, and quality-check findings from steps 2, 4, 5 (including any `backend-reviewer` dispatch findings) in mind so you don't re-derive them — focus on what's left.
 - Engagement-specific anti-patterns to watch for: numbering collisions (AD numbers, Revision indices), env-branching code, tracker.yaml truthfulness drift, terminology drift between docs.
 - Beyond the engagement-specific anti-patterns, look for: logic errors, off-by-one issues, missing edge cases, missing tests for new code paths, security issues (input validation, injection, auth bypass), performance regressions, breaking changes to public contracts, and wording / terminology drift in docs.
 

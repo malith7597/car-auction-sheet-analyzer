@@ -1,7 +1,7 @@
 ---
 name: forge-spec-review
 phases: [engineering]
-description: Multi-pass automated review of a draft Forge feature spec with fix cycles. Invokes the `spec-reviewer` sub-agent for each pass (Pass 1 audits including input-side gaps; Pass 2 verifies fixes), applies Blocker/Important fixes between passes, converges to no-issues-or-nits-only (max 2 passes), then asks the human for final approval. On approval, flips status to `approved` + updates tracker. Use whenever a feature spec is at `Status: draft` or `in-review` and the user asks to review, self-review, or approve it. Feature specs only — foundation specs (`.forge/specs/foundation/**`) are out of scope (use the manual foundation review instead). For plan review, use `/forge-plan-review`.
+description: "Multi-pass automated review of a draft Forge feature spec with fix cycles. Invokes the `spec-reviewer` sub-agent for each pass (Pass 1 audits including input-side gaps; Pass 2 verifies fixes), applies Blocker/Important fixes between passes, converges to no-issues-or-nits-only (max 2 passes), then asks the human for final approval. On approval, flips status to `approved` + updates tracker. Pass `--auto-approve-on-clean` to auto-flip when the verification pass returns zero Blockers + zero Importants (used by `/forge-deliver` auto-flow); default without the flag always asks the human. Use whenever a feature spec is at `Status: draft` or `in-review` and the user asks to review, self-review, or approve it. Feature specs only — foundation specs (`.forge/specs/foundation/**`) are out of scope (use the manual foundation review instead). For plan review, use `/forge-plan-review`."
 ---
 
 # /forge-spec-review
@@ -11,12 +11,15 @@ Automated multi-pass feature-spec review with fix cycles. Replaces the manual re
 ## How to Use
 
 ```
-/forge-spec-review <spec-path>
+/forge-spec-review <spec-path>                          # interactive — human approves at convergence
+/forge-spec-review <spec-path> --auto-approve-on-clean  # auto-flip if the verification pass returns zero Blockers + zero Importants
 ```
 
 `<spec-path>` is the path to the spec file relative to the harness root, e.g. `.forge/specs/<feature>-spec.md`.
 
-If invoked without an argument, print usage and exit.
+`--auto-approve-on-clean` is the conservative-auto-flow mode used by `/forge-deliver`. It bypasses step 4.5's human prompt **only when the spec is already pristine on the verification pass** — anything else still asks. Nits do NOT block auto-approval; they're recorded in the final report for follow-up. See step 4.5 below for the exact gate. Auto-flow orchestrators that want to keep a human spec gate simply do NOT pass the flag.
+
+If invoked without a `<spec-path>`, print usage and exit.
 
 ## When to Use
 
@@ -142,7 +145,7 @@ Append to `all_findings[]`.
 #### b. Convergence check
 
 - **Verdict `pass` or `pass-with-nits`** → exit loop. Proceed to step 4.
-- **`pass_counter ≥ 2` AND verdict `fail-with-issues`** → exit loop with verdict `manual-rewrite-needed`. Pass 1 audited, fixes were applied, Pass 2 verified — and issues still remain. Tell the human the spec likely needs structural rewrite, not further patches. Skip the auto-approval step (4.5); skill exits.
+- **`pass_counter ≥ 2` AND verdict `fail-with-issues`** → exit loop with verdict `manual-rewrite-needed`. Pass 1 audited, fixes were applied, Pass 2 verified — and issues still remain. Tell the human the spec likely needs structural rewrite, not further patches. Skip the auto-approval step (4.5); skill exits. (When `--auto-approve-on-clean` was passed, this still does NOT auto-approve — `manual-rewrite-needed` never auto-flips.)
 - **Verdict `fail-with-issues`** (and `pass_counter < 2`) → apply fixes (next sub-step), increment `pass_counter`, loop back.
 
 #### c. Apply fixes
@@ -183,9 +186,11 @@ If zero nits remain, omit the Remaining nits table — say "No remaining nits."
 
 Input-side findings (from Pass 1's dimension §12 audit) appear inline in the Pass 1 Blockers/Important rows tagged `(input-gap)`; no separate section.
 
-### 4.5. Ask the human for approval
+### 4.5. Approval gate
 
-Present three options. **Never auto-approve.**
+**If `--auto-approve-on-clean` was passed AND the final converging pass returned zero Blockers AND zero Importants** (Nits permitted), skip the human prompt and proceed directly to step 5 (option 1 — approve as-is). The Reviewed-via annotation in step 5b is amended to mark the auto-approval (see 5b for exact text). Any remaining nits are listed in the final report so the human can land them in a follow-up.
+
+**Otherwise** present the options below. **Without the flag, never auto-approve** — even a Pass 1 `pass` (zero of everything) asks the human.
 
 ```
 What would you like to do?
@@ -198,6 +203,8 @@ What would you like to do?
 **Rendering rule when zero nits remain:** omit option 2 from the prompt and renumber Reject as option 2 — present only two options. The "Apply nits then approve" path has nothing to do.
 
 Wait for the human to pick.
+
+The auto-approve gate is intentionally strict: **zero Blockers + zero Importants only**. If `--auto-approve-on-clean` was passed but the final pass surfaced an Important, fall back to the human prompt — auto-approve never decides on Important findings. This is the conservative-auto-flow's contract (per `/forge-deliver` docs).
 
 ### 5. On approval (option 1 or 2)
 
@@ -216,6 +223,18 @@ Use Edit to replace the existing header block with the approved version, **inclu
 > Date: <drafted-date> (drafted) · <today> (approved after <N>-pass review)
 > Reviewed-via: /forge-spec-review (<N>-pass, <today>)
 ```
+
+**Auto-approve variant** (when step 4.5's `--auto-approve-on-clean` gate triggered):
+
+```markdown
+> Status: approved
+> Author: <existing author>
+> Reviewed by: <lead-name> (auto-approved on clean Pass <N>)
+> Date: <drafted-date> (drafted) · <today> (auto-approved after <N>-pass review)
+> Reviewed-via: /forge-spec-review (auto-approved, <N>-pass, <today>)
+```
+
+The `Reviewed-via:` annotation still matches `guard-spec-approval.sh`'s regex (`/forge-spec-review`), so the hook lets the edit through. The `(auto-approved, …)` suffix is the audit trail — anyone reading the spec or grep'ing the tracker can distinguish human-approved from auto-approved specs.
 
 Where:
 - `<lead-name>` = `git config user.name`
@@ -275,7 +294,7 @@ The skill exits without flipping status or touching the tracker.
 
 - **Idempotent.** Running on an already-approved spec aborts cleanly. Running on `in-review` continues from there. The skill only flips status on explicit human approval.
 - **Max 2 passes.** Pass 1 audits (including input-side gaps as dimension §12); main session applies fixes; Pass 2 verifies. If Pass 2 still returns `fail-with-issues`, the skill exits with `manual-rewrite-needed` — escalates to human judgment rather than continuing to iterate. The cap reflects what each pass actually buys: Pass 1 carries unique signal (the audit), Pass 2 carries unique signal (verify the fixes); Pass 3+ would be diminishing-returns cascade-detection and is better handled by the human at that point.
-- **No auto-approval.** Even if the first pass returns `pass` (zero of everything), the human is asked. The skill never silently flips status.
+- **Auto-approval is opt-in.** Without `--auto-approve-on-clean`, the human is always asked — even on a Pass 1 `pass`. With the flag, only zero-Blockers + zero-Importants converging passes auto-approve; everything else still asks (Important findings never auto-decide). Auto-approved specs are explicitly marked in the `Reviewed-via:` annotation (`(auto-approved, …)` suffix) so the audit trail distinguishes them. `/forge-deliver` keeps its human spec gate by simply not passing the flag.
 - **Sub-agent independence.** Each pass invokes a fresh `spec-reviewer` context. The reviewer doesn't see the main session's history — it judges the spec as written, which is the point of the structural-independence design.
 - **Nit threshold.** The sub-agent is instructed to keep nits to ≤3 per pass. Floods of nits signal the reviewer is being too pedantic — re-tune `spec-reviewer.md` if observed across multiple runs.
 - **Input-side gaps audited inside Pass 1.** The `spec-reviewer` sub-agent's dimension §12 covers the same input-side audit `/forge-gap-check` performs standalone (PRD vagueness, conflicting meeting notes, draft-status dependencies). Bundling avoids the double-ingestion cost of a separate Pass 0 sub-agent invocation — sub-agent boundaries erase context, so chaining costs full file re-ingestion on each fresh-context call. Input-gap findings land in Pass 1's Blocker/Important tables tagged `(input-gap)`; standalone `/forge-gap-check` remains the right tool for pre-spec-body use (writes `B-N`/`W-N` to `## Open Questions`).
