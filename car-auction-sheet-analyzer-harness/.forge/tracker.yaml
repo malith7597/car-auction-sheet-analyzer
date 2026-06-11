@@ -5,9 +5,13 @@
 # Do not duplicate information that lives in spec/plan files.
 # This file tracks: what exists, what phase it's in, who owns it, what's blocking it.
 
-project: "[Project Name]"
-harness_version: "0.25.1"      # Last synced version from forge-harness template
-last_updated: "YYYY-MM-DDTHH:MM:SS"  # ISO 8601 timestamp
+project: "AuctionInsightAI"
+harness_version: "0.30.0"      # Last synced version from forge-harness template
+last_updated: "2026-06-11T00:00:00"  # ISO 8601 timestamp
+github_org: ""                 # GitHub org/owner that all project repos live under (e.g. "acme-io").
+                               # Read by /forge-deliver + /forge-pr-open for `gh ... --repo <github_org>/<repo>`
+                               # and by the dashboard (window.TRACKER.github_org) to build PR links.
+                               # Leave "" until set; the dashboard falls back to a neutral placeholder.
 
 # ------------------------------------------------------------------
 # Project Setup
@@ -18,13 +22,13 @@ last_updated: "YYYY-MM-DDTHH:MM:SS"  # ISO 8601 timestamp
 # Statuses: not-started | in-progress | in-review | approved | done
 
 setup:
-  status: not-started        # not-started | in-progress | ready
+  status: in-progress        # not-started | in-progress | ready
 
   project_prd:
-    status: not-started          # not-started | in-progress | gate1-passed | gate1-passed-with-risks | gate1-failed
-    last_gate_run: null          # ISO date of most recent /forge-prd-check full run
-    owner: null
-    notes: ""
+    status: gate1-passed          # not-started | in-progress | gate1-passed | gate1-passed-with-risks | gate1-failed
+    last_gate_run: "2026-05-29"   # ISO date of most recent /forge-prd-check full run
+    owner: malith3
+    notes: "Gate 1 passed on Run 2. Run 1 failed with 3 gaps (fixed before re-run)."
     accepted_risks: []           # populated by /forge-prd-check (full mode)
     # Risk entry shape:
     #   - id: R-PRD-001
@@ -34,10 +38,10 @@ setup:
     #     notes: "Reasoning, mitigation, follow-up trigger"
 
   architecture:
-    status: not-started          # not-started | in-progress | gate2-passed | gate2-passed-with-risks | gate2-passed-with-spikes | gate2-failed
-    last_gate_run: null          # ISO date of most recent /forge-arch-probe full run
-    owner: null
-    notes: ""
+    status: gate2-passed         # not-started | in-progress | gate2-passed | gate2-passed-with-risks | gate2-passed-with-spikes | gate2-failed
+    last_gate_run: "2026-05-31"  # ISO date of most recent /forge-arch-probe full run
+    owner: malith3
+    notes: "Gate 2 passed Run 1. SP-ARCH-001 (pipeline latency benchmark) and SP-ARCH-002 (mesh.ai validation) scoped for Week 1 of implementation."
     accepted_risks: []           # populated by /forge-arch-probe (full mode)
     spikes: []                   # populated by /forge-arch-probe (full mode)
     # Spike entry shape:
@@ -52,14 +56,143 @@ setup:
     # See docs/methodology/framework.md §4.10 in the harness repo for the full doctrine.
     # Discipline rule: foundation = anything required to run the app and write a
     # user-story feature spec. User-visible behavior with its own flows = feature.
-    status: not-started          # not-started | in-progress | done
-    last_updated: null           # ISO date when the slice list or status last changed
-    owner: null                  # Lead/dev responsible for the foundation phase as a whole (slice-level assignees live below)
+    status: in-progress          # not-started | in-progress | done
+    last_updated: "2026-06-01"   # ISO date when the slice list or status last changed
+    owner: malith3               # Lead/dev responsible for the foundation phase as a whole (slice-level assignees live below)
     backlog_source: ".forge/design/architecture.md → Foundation Backlog section"
     review_completed: null       # ISO date of the manual foundation review session
     review_audit_ref: null       # e.g., "engagement-gate-runs.md → Gate 3 Run 1 precondition note"
-    notes: "Blocked until architecture (Gate 2) passes; foundation backlog populated by /forge-arch-probe"
-    slices: []
+    notes: "Foundation phase started 2026-06-01. 13 slices across backend, worker, and frontend repos."
+    slices:
+      - id: FS-001
+        title: "App shell — Spring Boot"
+        spec: .forge/specs/foundation/001-app-shell-spring-boot-spec.md
+        plan: .forge/plans/foundation/001-app-shell-spring-boot-plan.md
+        status: spec
+        assignee: null
+        started: null
+        last_updated: "2026-06-01"
+        notes: "Spring Boot boots with env config, health endpoint, dev server runs. Repo: <backend-repo>"
+
+      - id: FS-002
+        title: "App shell — FastAPI worker"
+        spec: .forge/specs/foundation/002-app-shell-fastapi-worker-spec.md
+        plan: .forge/plans/foundation/002-app-shell-fastapi-worker-plan.md
+        status: spec
+        assignee: null
+        started: null
+        last_updated: "2026-06-01"
+        notes: "FastAPI worker boots, connects to SQS, processes a hello-world job end-to-end. Repo: <worker-repo>"
+
+      - id: FS-003
+        title: "App shell — React SPA"
+        spec: .forge/specs/foundation/003-app-shell-react-spa-spec.md
+        plan: .forge/plans/foundation/003-app-shell-react-spa-plan.md
+        status: spec
+        assignee: null
+        started: null
+        last_updated: "2026-06-01"
+        notes: "Vite + React boots, routing skeleton, GraphQL client wired, dev server runs. Repo: <frontend-repo>"
+
+      - id: FS-004
+        title: "Data layer — PostgreSQL"
+        spec: .forge/specs/foundation/004-data-layer-postgresql-spec.md
+        plan: .forge/plans/foundation/004-data-layer-postgresql-plan.md
+        status: spec
+        assignee: null
+        started: null
+        last_updated: "2026-06-01"
+        notes: "RDS connection, Flyway migration tooling configured, repository base classes (no entity migrations yet). Repo: <backend-repo>"
+
+      - id: FS-005
+        title: "Data layer — MongoDB"
+        spec: .forge/specs/foundation/005-data-layer-mongodb-spec.md
+        plan: .forge/plans/foundation/005-data-layer-mongodb-plan.md
+        status: spec
+        assignee: null
+        started: null
+        last_updated: "2026-06-01"
+        notes: "MongoDB connection, repository base class for Report documents. Repo: <worker-repo>"
+
+      - id: FS-006
+        title: "Message queue wiring"
+        spec: .forge/specs/foundation/006-message-queue-wiring-spec.md
+        plan: .forge/plans/foundation/006-message-queue-wiring-plan.md
+        status: spec
+        assignee: null
+        started: null
+        last_updated: "2026-06-01"
+        notes: "SQS producer in Spring Boot + SQS consumer in FastAPI; hello-world job round-trip passes. Repos: both"
+
+      - id: FS-007
+        title: "gRPC channel"
+        spec: .forge/specs/foundation/007-grpc-channel-spec.md
+        plan: .forge/plans/foundation/007-grpc-channel-plan.md
+        status: spec
+        assignee: null
+        started: null
+        last_updated: "2026-06-01"
+        notes: "Shared .proto definitions, generated Java + Python stubs, hello-world gRPC call Spring Boot <-> FastAPI passes. Repos: both"
+
+      - id: FS-008
+        title: "Auth scaffolding"
+        spec: .forge/specs/foundation/008-auth-scaffolding-spec.md
+        plan: .forge/plans/foundation/008-auth-scaffolding-plan.md
+        status: spec
+        assignee: null
+        started: null
+        last_updated: "2026-06-01"
+        notes: "JWT RS256 issue/validate, Google OAuth 2.0 flow, RBAC annotations wired (no user-story flows yet). Repo: <backend-repo>"
+
+      - id: FS-009
+        title: "WebSocket hub"
+        spec: .forge/specs/foundation/009-websocket-hub-spec.md
+        plan: .forge/plans/foundation/009-websocket-hub-plan.md
+        status: spec
+        assignee: null
+        started: null
+        last_updated: "2026-06-01"
+        notes: "Spring Boot WebSocket configured; client connects and receives a test push event. Repos: both"
+
+      - id: FS-010
+        title: "S3 wiring"
+        spec: .forge/specs/foundation/010-s3-wiring-spec.md
+        plan: .forge/plans/foundation/010-s3-wiring-plan.md
+        status: spec
+        assignee: null
+        started: null
+        last_updated: "2026-06-01"
+        notes: "Upload and download via AWS SDK confirmed working. Repos: both"
+
+      - id: FS-011
+        title: "Design system primitives"
+        spec: .forge/specs/foundation/011-design-system-primitives-spec.md
+        plan: .forge/plans/foundation/011-design-system-primitives-plan.md
+        status: spec
+        assignee: null
+        started: null
+        last_updated: "2026-06-01"
+        notes: "Design tokens, atomic components (Button, Input, Card, Layout). Repo: <frontend-repo>"
+
+      - id: FS-012
+        title: "Build & CI"
+        spec: .forge/specs/foundation/012-build-ci-spec.md
+        plan: .forge/plans/foundation/012-build-ci-plan.md
+        status: spec
+        assignee: null
+        started: null
+        last_updated: "2026-06-01"
+        notes: "Lint / typecheck / tests / build green on hello-world commit for all three repos. Repos: all"
+
+      - id: FS-013
+        title: "Observability stubs"
+        spec: .forge/specs/foundation/013-observability-stubs-spec.md
+        plan: .forge/plans/foundation/013-observability-stubs-plan.md
+        status: spec
+        assignee: null
+        started: null
+        last_updated: "2026-06-01"
+        notes: "Structured JSON logger, correlation ID propagation, error reporter wired in all services. Repos: all"
     # Slice entry shape:
     #   - id: F-001
     #     title: "App shell"
@@ -72,10 +205,10 @@ setup:
     #     notes: ""
 
   decomposition:
-    status: not-started          # not-started | in-progress | gate3-passed | gate3-failed
-    last_gate_run: null          # ISO date of most recent /forge-decompose full run
-    owner: null
-    notes: "Blocked until PRD (Gate 1), architecture (Gate 2), and foundation (§4.10) all complete"
+    status: gate3-passed         # not-started | in-progress | gate3-passed | gate3-failed
+    last_gate_run: "2026-05-31"  # ISO date of most recent /forge-decompose full run
+    owner: malith3
+    notes: "Gate 3 passed. 14 features across 3 delivery phases. Slicing: by capability module. Cuts: F-002 substrate-cut, F-007 substrate-cut, F-009 cluster-cut."
 
   technical_decisions:
     status: not-started
@@ -123,8 +256,38 @@ setup:
 # pre-feature scaffolding and live under `setup.foundation`.
 
 delivery:
-  current_phase: null            # int | null — id of the phase currently in-progress
-  phases: []
+  # Engagement-level shipment unit (ship_unit).
+  #   wave    — features ship one wave at a time via /forge-deliver +
+  #             /forge-wave-decompose. A decomposed feature carries nested
+  #             `waves[].workitems[]` + a `decomposition_plan` sibling.
+  #   feature — the whole feature ships as a single integration PR; no per-wave
+  #             shipping. A decomposed feature carries a FLAT `workitems[]` list.
+  # Per-feature override lives at `features[<id>].ship_unit` and is immutable
+  # once set at decomposition time.
+  ship_unit: wave                # wave | feature — engagement default
+  current_phase: 1               # int | null — id of the phase currently in-progress
+  phases:
+    - id: 1
+      title: "Core Analysis"
+      theme: "User can upload a USS auction sheet and receive a 3D-enhanced vehicle intelligence report"
+      status: in-progress
+      started: "2026-05-31"
+      sealed: null
+      due_date: null             # ISO date — phase target delivery date; set via /forge-set-dates
+    - id: 2
+      title: "User Operations"
+      theme: "Users manage analysis history, purchase credits, dispute failed analyses, and receive email notifications"
+      status: locked
+      started: null
+      sealed: null
+      due_date: null             # ISO date — phase target delivery date; set via /forge-set-dates
+    - id: 3
+      title: "Admin Portal"
+      theme: "Internal team can manage disputes, inspect pipeline health, and configure the platform"
+      status: locked
+      started: null
+      sealed: null
+      due_date: null             # ISO date — phase target delivery date; set via /forge-set-dates
   # Phase entry shape:
   #   - id: 1
   #     title: "Platform Core"
@@ -144,7 +307,216 @@ delivery:
 # Priority: high | medium | low
 # delivery_phase: int referencing delivery.phases[*].id, or null if unassigned
 
-features: {}
+features:
+  f-001:
+    title: "User Authentication & Registration"
+    phase: backlog
+    delivery_phase: 1
+    owner: null
+    priority: high
+    started: null
+    spec: draft
+    plan: "n/a"
+    blocked_by: []
+    due_date: null
+    follow_up_of: []
+    last_updated: "2026-05-31T00:00:00"
+    notes: "FR-4 keep-as-one: single authentication/session envelope"
+
+  f-002-a:
+    title: "Upload Substrate"
+    phase: backlog
+    delivery_phase: 1
+    owner: null
+    priority: high
+    started: null
+    spec: draft
+    plan: "n/a"
+    blocked_by: ["f-001", "f-007-a"]
+    due_date: null
+    follow_up_of: []
+    last_updated: "2026-05-31T00:00:00"
+    notes: "Substrate sibling of F-002 substrate-cut"
+
+  f-002-b:
+    title: "Upload UI"
+    phase: backlog
+    delivery_phase: 1
+    owner: null
+    priority: high
+    started: null
+    spec: draft
+    plan: "n/a"
+    blocked_by: ["f-001", "f-002-a"]
+    due_date: null
+    follow_up_of: []
+    last_updated: "2026-05-31T00:00:00"
+    notes: "Surface sibling of F-002 substrate-cut"
+
+  f-003:
+    title: "Analysis Pipeline"
+    phase: backlog
+    delivery_phase: 1
+    owner: null
+    priority: high
+    started: null
+    spec: draft
+    plan: "n/a"
+    blocked_by: ["f-002-a"]
+    due_date: null
+    follow_up_of: []
+    last_updated: "2026-05-31T00:00:00"
+    notes: "FR-4 keep-as-one: single processing envelope in FastAPI worker. OQ-2 (LLM provider) blocks final implementation."
+
+  f-004:
+    title: "3D Damage Render"
+    phase: backlog
+    delivery_phase: 1
+    owner: null
+    priority: high
+    started: null
+    spec: draft
+    plan: "n/a"
+    blocked_by: ["f-003"]
+    due_date: null
+    follow_up_of: []
+    last_updated: "2026-05-31T00:00:00"
+    notes: "SP-ARCH-002 spike must run before implementation"
+
+  f-005:
+    title: "Vehicle Intelligence Report"
+    phase: backlog
+    delivery_phase: 1
+    owner: null
+    priority: high
+    started: null
+    spec: draft
+    plan: "n/a"
+    blocked_by: ["f-003", "f-004"]
+    due_date: null
+    follow_up_of: []
+    last_updated: "2026-05-31T00:00:00"
+    notes: "FR-4 keep-as-one: single report delivery surface"
+
+  f-006:
+    title: "Analysis History & Real-time Notification"
+    phase: backlog
+    delivery_phase: 2
+    owner: null
+    priority: medium
+    started: null
+    spec: draft
+    plan: "n/a"
+    blocked_by: ["f-001", "f-005"]
+    due_date: null
+    follow_up_of: []
+    last_updated: "2026-05-31T00:00:00"
+    notes: ""
+
+  f-007-a:
+    title: "Credit Substrate"
+    phase: backlog
+    delivery_phase: 1
+    owner: null
+    priority: high
+    started: null
+    spec: draft
+    plan: "n/a"
+    blocked_by: ["f-001"]
+    due_date: null
+    follow_up_of: []
+    last_updated: "2026-05-31T00:00:00"
+    notes: "Substrate sibling of F-007 substrate-cut"
+
+  f-007-b:
+    title: "Credit Purchase"
+    phase: backlog
+    delivery_phase: 2
+    owner: null
+    priority: medium
+    started: null
+    spec: draft
+    plan: "n/a"
+    blocked_by: ["f-007-a"]
+    due_date: null
+    follow_up_of: []
+    last_updated: "2026-05-31T00:00:00"
+    notes: "Surface sibling of F-007 substrate-cut. OQ-1 (payment gateway) blocks implementation."
+
+  f-008:
+    title: "Credit Dispute Flow"
+    phase: backlog
+    delivery_phase: 2
+    owner: null
+    priority: medium
+    started: null
+    spec: draft
+    plan: "n/a"
+    blocked_by: ["f-003", "f-007-a"]
+    due_date: null
+    follow_up_of: []
+    last_updated: "2026-05-31T00:00:00"
+    notes: "FR-4 keep-as-one: single dispute lifecycle state machine"
+
+  f-009-a:
+    title: "Support Admin Portal"
+    phase: backlog
+    delivery_phase: 3
+    owner: null
+    priority: low
+    started: null
+    spec: draft
+    plan: "n/a"
+    blocked_by: ["f-008"]
+    due_date: null
+    follow_up_of: []
+    last_updated: "2026-05-31T00:00:00"
+    notes: "Cluster sibling of F-009 cluster-cut"
+
+  f-009-b:
+    title: "Technical Admin Portal"
+    phase: backlog
+    delivery_phase: 3
+    owner: null
+    priority: low
+    started: null
+    spec: draft
+    plan: "n/a"
+    blocked_by: ["f-003"]
+    due_date: null
+    follow_up_of: []
+    last_updated: "2026-05-31T00:00:00"
+    notes: "Cluster sibling of F-009 cluster-cut"
+
+  f-009-c:
+    title: "Super Admin Portal"
+    phase: backlog
+    delivery_phase: 3
+    owner: null
+    priority: low
+    started: null
+    spec: draft
+    plan: "n/a"
+    blocked_by: ["f-007-b", "f-009-a", "f-009-b"]
+    due_date: null
+    follow_up_of: []
+    last_updated: "2026-05-31T00:00:00"
+    notes: "Cluster sibling of F-009 cluster-cut (superset)"
+
+  f-010:
+    title: "Email Notifications"
+    phase: backlog
+    delivery_phase: 2
+    owner: null
+    priority: medium
+    started: null
+    spec: draft
+    plan: "n/a"
+    blocked_by: ["f-003", "f-008"]
+    due_date: null
+    follow_up_of: []
+    last_updated: "2026-05-31T00:00:00"
+    notes: "OQ-4 (email provider) blocks implementation."
 
 # Example entry (uncomment and copy when adding a feature):
 #
@@ -159,6 +531,10 @@ features: {}
 #     spec: n/a
 #     plan: n/a
 #     blocked_by: []
+#     due_date: null           # ISO date — optional feature target date; set via /forge-set-dates (opt-in)
+#     follow_up_of: []         # rework lineage — "this is a later pass over these features".
+#                              # Distinct from blocked_by (dependency) and from a spec Rev (which covers typos too).
+#                              # E.g.: follow_up_of: [feature-a, feature-b]
 #     last_updated: "YYYY-MM-DDTHH:MM:SS"
 #     notes: ""
 #
@@ -167,3 +543,30 @@ features: {}
 # use `assignee:` — that's slice-level role tracking, separate from feature ownership.
 # The dashboard reads `f.owner ?? f.assignee` so projects that predate this
 # convention still render correctly.
+
+# ------------------------------------------------------------------
+# Bugs
+# ------------------------------------------------------------------
+# Post-ship defects. A bug is M:N — one shared-primitive defect can break several
+# features at once, so bugs live here as a flat collection (not nested under features).
+# The feature↔bug link is single-sourced from `affects` (derived by dashboard).
+# A bug does NOT reopen its feature (feature stays done; bug carries its own status).
+# `delivery_phase` is the scheduled-fix milestone (defaults to current_phase at discovery).
+# Full description (repro / expected / actual / fix) lives in `.forge/bugs.md`, one
+# section per bug, joined by id. See `.claude/rules/tracker.md` → "Bug Tracking".
+#
+# Bug entry shape:
+#   - id: BUG-001
+#     title: "Short description"
+#     status: open             # open | in-progress | fixed | wontfix
+#     severity: high           # critical | high | medium | low
+#     affects: [feature-a, feature-b]  # feature ids — M:N allowed
+#     found_in: null           # feature-id or foundation-slice-id where the bug was introduced
+#     delivery_phase: 1        # int — scheduled-fix phase (bump to defer)
+#     found_date: "YYYY-MM-DD"
+#     spec_ref: null           # path to bugs.md section or a dedicated .forge/bugs/BUG-NNN.md
+#     fix_pr: null             # "<repo>#<pr-number>" or null
+#     doc: null                # optional path to a dedicated .forge/bugs/BUG-NNN.md for heavy bugs
+#     notes: ""
+
+bugs: []
