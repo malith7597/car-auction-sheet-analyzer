@@ -7,8 +7,8 @@
 
 project: "AuctionInsightAI"
 harness_version: "0.30.0"      # Last synced version from forge-harness template
-last_updated: "2026-06-11T00:00:00"  # ISO 8601 timestamp
-github_org: ""                 # GitHub org/owner that all project repos live under (e.g. "acme-io").
+last_updated: "2026-06-12T00:00:00"  # ISO 8601 timestamp
+github_org: "malith7597"       # GitHub org/owner that all project repos live under (e.g. "acme-io").
                                # Read by /forge-deliver + /forge-pr-open for `gh ... --repo <github_org>/<repo>`
                                # and by the dashboard (window.TRACKER.github_org) to build PR links.
                                # Leave "" until set; the dashboard falls back to a neutral placeholder.
