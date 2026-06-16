@@ -13,8 +13,8 @@ Spring Boot application boots with environment config loaded, health endpoint re
 ### Functional Requirements
 - Spring Boot 3 / Java 21 application starts without errors
 - Health endpoint (`/actuator/health`) returns HTTP 200
-- Environment config loaded from `.env` / application properties; mandatory env vars: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `AWS_REGION`, `JWT_PRIVATE_KEY_PATH`
-  - **Deliberate decision — full env contract up front.** FS-001 only *consumes* the DB vars (Flyway on startup). `AWS_REGION` (used by FS-006 SQS / FS-010 S3) and `JWT_PRIVATE_KEY_PATH` (used by FS-008 auth) are mandated now so the env contract is established once at the shell and later slices add no startup-validation surprises. The cost is that booting FS-001 requires placeholder values for these two vars; that is accepted to keep the env contract single-sourced. See § Open Questions for the unresolved `AWS_REGION` value.
+- Environment config loaded from `.env` / application properties; mandatory env vars: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `AWS_REGION`, `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY` (see Rev 1)
+  - **Deliberate decision — full env contract up front.** FS-001 only *consumes* the DB vars (Flyway on startup). `AWS_REGION` (used by FS-006 SQS / FS-010 S3) and the JWT key pair `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY` (base64-encoded PEM, used by FS-008 auth — RS256 signing needs the private key, verification needs the public key) are mandated now so the env contract is established once at the shell and later slices add no startup-validation surprises. The cost is that booting FS-001 requires placeholder values for these three vars; that is accepted to keep the env contract single-sourced. See § Open Questions for the unresolved `AWS_REGION` value.
 - Flyway configured (migrations run on startup against the dev database — no entity migrations yet)
 - `docker-compose.yml` providing a local PostgreSQL service, so a clean checkout can boot without external infrastructure
 - Base project structure: package layout, dependency injection wired, exception handler skeleton
@@ -27,9 +27,9 @@ Spring Boot application boots with environment config loaded, health endpoint re
 - [ ] `./gradlew bootRun` starts without errors with the dev database running (`docker compose up -d postgres`)
 - [ ] `GET /actuator/health` returns `{"status":"UP"}`
 - [ ] `GET /actuator/health` is reachable without authentication (endpoint stays public — FS-008 must not lock it down)
-- [ ] Missing any of `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `AWS_REGION`, `JWT_PRIVATE_KEY_PATH` causes startup to fail with an error message that names the missing variable
+- [ ] Missing any of `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `AWS_REGION`, `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY` causes startup to fail with an error message that names the missing variable
 - [ ] Flyway runs (no-op with zero migrations is acceptable at this stage)
-- [ ] `GET /no-such-endpoint` returns a structured JSON error body (e.g. `{"status":404,"error":"Not Found","path":"/no-such-endpoint"}`) — not an HTML error page
+- [ ] `GET /no-such-endpoint` returns a structured JSON error body in the project envelope `{"success":false,"error":"Not Found","data":null}` (see Rev 1) — not an HTML error page
 - [ ] Dev server startup completes in under 30 seconds on a development machine (informally verified)
 
 ## Scope Boundaries
@@ -64,3 +64,9 @@ Spring Boot application boots with environment config loaded, health endpoint re
 - **AWS region selection** — `AWS_REGION` is a mandatory startup var (env contract decision above), but the actual region value is unresolved until infrastructure setup. A placeholder is acceptable for FS-001 boot; the real value is decided before the first AWS-touching slice (FS-006 SQS / FS-010 S3). Tracks architecture.md §Open Questions → "AWS region selection".
 
 ## Revisions
+
+### Rev 1 — 2026-06-16
+- **Changed:** (1) Mandatory JWT env var `JWT_PRIVATE_KEY_PATH` replaced by the key pair `JWT_PRIVATE_KEY` + `JWT_PUBLIC_KEY` (base64-encoded PEM) — mandatory set is now 6 vars. (2) AC#6's structured-error example changed from `{status,error,path}` to the project envelope `{success,error,data}`.
+- **Why:** Surfaced during FS-001 plan review (B3, B4). The backend repo's `CLAUDE.md` Stack Profile already mandates the `{success,error,data}` error envelope project-wide and a JWT key pair (RS256 verification requires the public key, which a single private-key path omits). Base64-content keys are also more container-friendly than a mounted file path. The original spec values predated and conflicted with those established conventions.
+- **Impact on plan:** FS-001 plan validator now checks 6 vars; `GlobalExceptionHandler` emits the `{success,error,data}` envelope; `.env.example` carries both JWT keys.
+- **Approved by:** malith3
