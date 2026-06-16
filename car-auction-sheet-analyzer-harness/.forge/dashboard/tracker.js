@@ -2,7 +2,7 @@
 window.TRACKER = {
   "project": "AuctionInsightAI",
   "harness_version": "0.30.0",
-  "last_updated": "2026-06-12T00:00:00",
+  "last_updated": "2026-06-16T12:00:00",
   "github_org": "malith7597",
   "setup": {
     "status": "in-progress",
@@ -23,7 +23,7 @@ window.TRACKER = {
     },
     "foundation": {
       "status": "in-progress",
-      "last_updated": "2026-06-01",
+      "last_updated": "2026-06-16",
       "owner": "malith3",
       "backlog_source": ".forge/design/architecture.md → Foundation Backlog section",
       "review_completed": null,
@@ -35,11 +35,11 @@ window.TRACKER = {
           "title": "App shell — Spring Boot",
           "spec": ".forge/specs/foundation/001-app-shell-spring-boot-spec.md",
           "plan": ".forge/plans/foundation/001-app-shell-spring-boot-plan.md",
-          "status": "spec",
-          "assignee": null,
-          "started": null,
-          "last_updated": "2026-06-01",
-          "notes": "Spring Boot boots with env config, health endpoint, dev server runs. Repo: <backend-repo>"
+          "status": "review",
+          "assignee": "malith3",
+          "started": "2026-06-16",
+          "last_updated": "2026-06-16",
+          "notes": "Implemented across 7 subtask commits (8de38c9..3dc40da). ./gradlew check green (7 unit + Checkstyle + JaCoCo); ./gradlew integrationTest green (6 Testcontainers ITs); manual compose bootRun verified all 7 ACs (startup 9.885s). PR #6 open (malith7597/car-auction-sheet-analyzer). Repo: car-auction-sheet-backend"
         },
         {
           "id": "FS-002",

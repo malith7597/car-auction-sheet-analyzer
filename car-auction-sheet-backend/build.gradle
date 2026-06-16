@@ -1,0 +1,87 @@
+plugins {
+    id 'java'
+    id 'checkstyle'
+    id 'jacoco'
+    id 'org.springframework.boot' version '3.3.5'
+    id 'io.spring.dependency-management' version '1.1.6'
+}
+
+group = 'com.auctioninsightai'
+version = '0.0.1-SNAPSHOT'
+description = 'AuctionInsightAI Spring Boot API'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+    runtimeOnly 'org.postgresql:postgresql'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:postgresql'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+checkstyle {
+    toolVersion = '10.18.2'
+    configFile = file('config/checkstyle/checkstyle.xml')
+    // Scoped suppression: integration tests use the mandated *IT suffix (Failsafe convention),
+    // whose trailing "IT" trips AbbreviationAsWordInName. Production code stays fully strict.
+    configProperties = [
+        'org.checkstyle.google.suppressionfilter.config':
+            file('config/checkstyle/checkstyle-suppressions.xml').absolutePath
+    ]
+    maxWarnings = 0
+}
+
+// `test` runs unit tests only (*Test); integration tests (*IT) run via `integrationTest`.
+tasks.named('test') {
+    useJUnitPlatform()
+    filter {
+        excludeTestsMatching '*IT'
+    }
+}
+
+// Integration tests use Testcontainers (require a Docker daemon). Kept out of `check` so a
+// Docker-less CI stage stays green until FS-012 provisions Docker on the runner.
+tasks.register('integrationTest', Test) {
+    description = 'Runs integration tests (*IT) against Testcontainers Postgres.'
+    group = 'verification'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    filter {
+        includeTestsMatching '*IT'
+    }
+    shouldRunAfter tasks.named('test')
+}
+
+jacoco {
+    toolVersion = '0.8.12'
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestReport')
+}
