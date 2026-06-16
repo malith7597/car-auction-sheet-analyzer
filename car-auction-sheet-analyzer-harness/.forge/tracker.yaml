@@ -72,7 +72,7 @@ setup:
         assignee: malith3
         started: "2026-06-16"
         last_updated: "2026-06-16"
-        notes: "Implemented across 7 subtask commits (8de38c9..3dc40da). ./gradlew check green (7 unit + Checkstyle + JaCoCo); ./gradlew integrationTest green (6 Testcontainers ITs); manual compose bootRun verified all 7 ACs (startup 9.885s). Opening implementation PR. Repo: car-auction-sheet-backend"
+        notes: "Implemented across 7 subtask commits (8de38c9..3dc40da). ./gradlew check green (7 unit + Checkstyle + JaCoCo); ./gradlew integrationTest green (6 Testcontainers ITs); manual compose bootRun verified all 7 ACs (startup 9.885s). PR #6 open (malith7597/car-auction-sheet-analyzer). Repo: car-auction-sheet-backend"
 
       - id: FS-002
         title: "App shell — FastAPI worker"
