@@ -285,3 +285,21 @@ Re-verified: `./gradlew check` green; `integrationTest` green (14 tests total).
   convention (no formatter — Spotless was rejected at plan review). Hand-maintaining
   google_checks continuation-indent rules without a formatter is a friction point worth a Reflect
   finding (candidate: a 4-space custom Checkstyle config, or revisit the no-formatter stance).
+
+### Reflect (2026-06-17 — after PR #6 merged to main, df7d69e)
+- **What worked:** the async/dual-service ADs gave a clear shell scope; Testcontainers singleton +
+  separate `integrationTest` task kept Docker-less CI green; fail-fast env validation via
+  EnvironmentPostProcessor landed cleanly; the spec→plan→review gates caught the exception-handler
+  4xx-collapse bug before merge (PR review).
+- **What didn't:** strict google_checks without a formatter cost repeated reformat loops (→ lesson
+  L-001); the concurrent FS-014 worktree swept up staged FS-001 files once (recovered) — a reminder
+  to keep parallel-session staging isolated.
+- **Framework change proposed:** lessons-file format conflict surfaced — `.forge/lessons.md` template
+  uses `## L-NNN` (newest at bottom, sync metadata) but `.claude/rules/tracker.md` § Lessons Entry
+  Format mandates `### YYYY-MM-DD —` (newest on top) for the dashboard cadence parser. The two are
+  incompatible; flagged to the lead to reconcile upstream. (L-001 followed the file's own shape.)
+- **Findings promoted:** no `-findings.md` file existed for FS-001; the one generalizable finding
+  (strict-checker-without-formatter) was promoted directly to `.forge/lessons.md` as **L-001**.
+- **Carry-forward items closed:** (1) Maven→Gradle recorded as **AD #11** in harness CLAUDE.md;
+  (2) backend toolchain columns backfilled in `.forge/test-strategy.md`; (3) Checkstyle/formatter
+  friction → **L-001**. FS-012 (Build & CI) to decide the formatter resolution.

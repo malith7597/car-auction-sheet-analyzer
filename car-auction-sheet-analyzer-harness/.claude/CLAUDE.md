@@ -37,6 +37,7 @@
 | 8 | **GraphQL** for frontend → Spring Boot API communication | Flexible query model suits variable report data shapes; single endpoint | ⚠️ Costly — changing API contract requires coordinated frontend + backend migration | 2026-05-31 |
 | 9 | **Vite + React SPA** (no SSR) for frontend | SPA sufficient for authenticated app; simpler deployment (CloudFront + S3 static) | ✅ Moderate — SSR can be introduced incrementally (e.g., Next.js migration) | 2026-05-31 |
 | 10 | **No multi-tenancy in Phase 1** — every user is an individual account; tenant_id is null | Simplifies data model and auth; multi-tenancy introduced in Phase 2 | ✅ Planned — Phase 2 addition; tenant_id claim already in JWT for forward compatibility | 2026-05-31 |
+| 11 | **Gradle (Groovy DSL)** is the backend build tool — superseding the Maven references the early backend CLAUDE.md carried | Chosen during FS-001; Spring Boot + dependency-management + checkstyle + jacoco plugins compose cleanly, committed wrapper pins the version for CI, and the team preferred the Groovy DSL ergonomics. Recorded so the reconciled backend CLAUDE.md has a traceable rationale | ✅ Low — build-tool migration is mechanical and repo-local; no inter-service contract impact | 2026-06-17 |
 
 ## Reference Map
 

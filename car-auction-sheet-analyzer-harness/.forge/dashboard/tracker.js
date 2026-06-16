@@ -1,8 +1,9 @@
 /* Generated from ../tracker.yaml by hooks/regen-tracker-dashboard.sh. Do not edit. */
-window.TRACKER = {
+window.TRACKER =
+{
   "project": "AuctionInsightAI",
   "harness_version": "0.30.0",
-  "last_updated": "2026-06-16T12:00:00",
+  "last_updated": "2026-06-17T00:00:00",
   "github_org": "malith7597",
   "setup": {
     "status": "in-progress",
@@ -23,7 +24,7 @@ window.TRACKER = {
     },
     "foundation": {
       "status": "in-progress",
-      "last_updated": "2026-06-16",
+      "last_updated": "2026-06-17",
       "owner": "malith3",
       "backlog_source": ".forge/design/architecture.md → Foundation Backlog section",
       "review_completed": null,
@@ -35,11 +36,11 @@ window.TRACKER = {
           "title": "App shell — Spring Boot",
           "spec": ".forge/specs/foundation/001-app-shell-spring-boot-spec.md",
           "plan": ".forge/plans/foundation/001-app-shell-spring-boot-plan.md",
-          "status": "review",
+          "status": "done",
           "assignee": "malith3",
           "started": "2026-06-16",
-          "last_updated": "2026-06-16",
-          "notes": "Implemented across 7 subtask commits (8de38c9..3dc40da). ./gradlew check green (7 unit + Checkstyle + JaCoCo); ./gradlew integrationTest green (6 Testcontainers ITs); manual compose bootRun verified all 7 ACs (startup 9.885s). PR #6 open (malith7597/car-auction-sheet-analyzer). Repo: car-auction-sheet-backend"
+          "last_updated": "2026-06-17",
+          "notes": "Shipped. PR #6 merged to main (df7d69e, 2026-06-16). ./gradlew check green (7 unit + Checkstyle + JaCoCo); ./gradlew integrationTest green (6 Testcontainers ITs); manual compose bootRun verified all 7 ACs (startup 9.885s). Reflect done 2026-06-17 (AD #11 Gradle, test-strategy backend backfill, lesson L-001). Repo: car-auction-sheet-backend"
         },
         {
           "id": "FS-002",
@@ -483,4 +484,5 @@ window.TRACKER = {
   },
   "bugs": []
 }
+
 ;
