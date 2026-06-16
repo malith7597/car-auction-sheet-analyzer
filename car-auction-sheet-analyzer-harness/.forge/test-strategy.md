@@ -1,7 +1,7 @@
 # [Project Name] — Test Strategy
 
-> Status: draft — **fill in the toolchain rows before your first feature.**
-> Last updated: YYYY-MM-DD
+> Status: in-progress — **backend (`car-auction-sheet-backend`) toolchain rows filled from FS-001.** Frontend rows fill in FS-003; seam/E2E rows in FS-012.
+> Last updated: 2026-06-17
 > Related: `.forge/checklists/quality-checklist.md`, `.forge/design/architecture.md`
 
 ---
@@ -39,11 +39,11 @@ Replace each `[…]` with your stack's choice. The *concepts* (mock isolation, r
 
 | Aspect | `<backend-repo>` | `<frontend-repo>` |
 |--------|------------------|-------------------|
-| Framework | `[backend unit framework]` | `[frontend unit framework + component testing lib]` |
+| Framework | JUnit 5 (Jupiter) + Mockito + AssertJ | `[frontend unit framework + component testing lib]` |
 | What to mock | external services, data-access layer, security context | API calls, router, auth context |
 | What NOT to mock | the unit under test, simple value objects | the component under test |
-| Naming / location | `[convention]` | `[convention — e.g. co-located *.test.*]` |
-| Run command | `<backend-test-cmd>` (see CLAUDE.md §Common Commands) | `<frontend-test-cmd>` |
+| Naming / location | `*Test.java` under `src/test/java/...` (mirrors prod package); run by the Gradle `test` task | `[convention — e.g. co-located *.test.*]` |
+| Run command | `./gradlew test` (part of `./gradlew check`) | `<frontend-test-cmd>` |
 
 **Unit-test per feature:** every method with business logic, every state-transition rule, every validation rule, every component with conditional rendering or interaction, every custom hook/util. **Don't** unit-test trivial accessors, framework-generated code, or styling.
 
@@ -51,10 +51,10 @@ Replace each `[…]` with your stack's choice. The *concepts* (mock isolation, r
 
 | Aspect | `<backend-repo>` | `<frontend-repo>` |
 |--------|------------------|-------------------|
-| Framework | `[backend integration framework + real-dependency harness, e.g. ephemeral DB]` | `[frontend integration approach, e.g. API mocking lib]` |
-| Scope | data-access against a real DB, controller→service→data flows, auth/security chain, role-based data scoping | page-level rendering with mocked API, form-submission flows, protected-route behavior |
-| Real dependency | `[how you stand up a real DB/services for tests]` | `[API mock layer]` |
-| Run command | `<backend-check-cmd>` | `<frontend-test-cmd>` |
+| Framework | JUnit 5 + Spring Boot Test (`@SpringBootTest`, `TestRestTemplate`) + Testcontainers | `[frontend integration approach, e.g. API mocking lib]` |
+| Scope | full application-context boot, controller→service→data flows, Flyway migration, actuator/health, exception-envelope wiring; data-access against a real DB once entities land | page-level rendering with mocked API, form-submission flows, protected-route behavior |
+| Real dependency | Testcontainers `PostgreSQLContainer` (singleton started in a static block; `@DynamicPropertySource` overrides the datasource) — see `AbstractIntegrationTest` | `[API mock layer]` |
+| Run command | `./gradlew integrationTest` (`*IT.java`; **separate from `check`** so Docker-less CI stays green until FS-012 wires Docker into CI) | `<frontend-test-cmd>` |
 
 ### T3 — Seam + WI-scope E2E
 
@@ -90,7 +90,7 @@ Replace each `[…]` with your stack's choice. The *concepts* (mock isolation, r
 
 ## Coverage Targets
 
-Coverage is a guardrail, not a goal — high coverage of trivial code is worthless; low coverage of critical paths is dangerous. Set targets per category (e.g. business-logic ≥ 80%, interactive UI ≥ 70%, critical-path acceptance criteria 100% mapped to a test). **Always test, no exceptions:** authentication/authorization, every state-transition (valid + invalid), data scoping per role permutation, form validation (client + server), pagination/filtering. Fill in concrete numbers + the coverage tool for your stack: `[coverage tool]`.
+Coverage is a guardrail, not a goal — high coverage of trivial code is worthless; low coverage of critical paths is dangerous. Set targets per category (e.g. business-logic ≥ 80%, interactive UI ≥ 70%, critical-path acceptance criteria 100% mapped to a test). **Always test, no exceptions:** authentication/authorization, every state-transition (valid + invalid), data scoping per role permutation, form validation (client + server), pagination/filtering. Fill in concrete numbers + the coverage tool for your stack. **Backend:** JaCoCo (`./gradlew jacocoTestReport`, wired into `check`); report-only in FS-001 (no hard threshold gate — the unit-testable validator is fully covered, wired-shell beans are exercised by `integrationTest` which runs separately, so a per-`test` 80% gate would mislead). Revisit a hard coverage gate when business logic lands (FS-004+).
 
 ---
 

@@ -15,27 +15,21 @@
 
 <!-- Example entry shape — delete after first real lesson lands. -->
 
-<!--
-## L-001 — Short title naming the lesson, not the change
+## L-001 — Strict google_checks without an autoformatter is a recurring per-edit tax
 
-- **Date:** YYYY-MM-DD
-- **Source commits in this repo:** `<sha>`, `<sha>`
-- **Sync target:** upstream — `templates/project-harness/<path/to/file>` (or `project-only`, or `mixed` with a breakdown)
-- **Synced:** _pending_
+- **Date:** 2026-06-17
+- **Source commits in this repo:** FS-001 backend slice (PR #6, `df7d69e`); see `.forge/plans/foundation/001-app-shell-spring-boot-plan.md` § Notes
+- **Sync target:** project-only (the resolution is a project toolchain choice; the *lesson* is worth carrying in mind upstream but there is no template file to port)
+- **Synced:** n/a
 
 ### Problem observed
 
-What was happening on the ground that surfaced the lesson. Be concrete: which gate, which artifact, what drift, what symptom. If multiple attempts were made, summarise what each tried and why it didn't fully land.
+FS-001 adopted Checkstyle `google_checks` with `maxWarnings = 0` but **no autoformatter** (Spotless was explicitly rejected at plan review). Every hand-written Java file then had to satisfy google_checks' 2-space continuation-indent and line-length (100) rules by hand. This produced repeated check-fail → reformat loops across the slice (initial 41 violations, then trailing 1–2 LineLength violations even during the PR-review fix commit `59f43fe`). The cost is small per file but recurs on every edit and every reviewer round-trip.
 
 ### Change made
 
-What was actually edited in this engagement (file paths, before/after summary). For mixed-target entries, separate the generic improvements that should sync upstream from the project-specific edits that should NOT sync.
+No tooling change yet — FS-001 absorbed the friction and established **2-space indentation for all backend Java** as the convention (recorded in the plan's implementation notes). A scoped `checkstyle-suppressions.xml` was added only for the Failsafe `*IT` abbreviation rule; production code stays fully strict.
 
 ### Lesson
 
-The principle generalised — what would a future engagement learn from this? Frame it so a reader who never saw this engagement still gets the takeaway.
-
-### Verification (optional)
-
-How a reader can confirm the upstream sync landed correctly — e.g., re-run a specific gate against a representative input and observe the expected behaviour change.
--->
+If a project locks a strict style checker with `maxWarnings = 0`, pair it with an **autoformatter wired into the build/pre-commit** (Spotless, google-java-format) from the first slice — otherwise the team pays a manual reformat tax on every edit and burns reviewer rounds on indentation. If a formatter is deliberately declined, that decision should be revisited the moment the manual-fix loop shows up in practice (it did, in FS-001). Candidate resolutions for this engagement: adopt Spotless + google-java-format, or relax to a 4-space custom Checkstyle config. **Open for FS-012 (Build & CI) to decide.**
