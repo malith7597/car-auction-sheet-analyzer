@@ -199,15 +199,35 @@ AssertJ; Checkstyle lint; JaCoCo coverage). Run command: `./gradlew check`
 - [ ] No T3/T-E2E (no UI / no seam in this slice)
 
 ## Progress
-- [ ] Subtask 1 — Gradle scaffold + package structure + docker-compose
-- [ ] Subtask 2 — Required-env-var validator (6 vars)
-- [ ] Subtask 3 — Actuator health (public)
-- [ ] Subtask 4 — Flyway config
-- [ ] Subtask 5 — Global exception handler + `{success,error,data}` 404
-- [ ] Subtask 6 — Test toolchain (Checkstyle/JaCoCo/Testcontainers) + T1/T2 tests
-- [ ] Subtask 7 — Reconcile repo CLAUDE.md (Maven→Gradle) + dev docs
-- [ ] Subtask 8 — `./gradlew check` green + manual compose `bootRun` (record evidence)
-- [ ] AC#7 — bootRun startup timed < 30s (informal)
+- [x] Subtask 1 — Gradle scaffold + package structure + docker-compose (commit `8de38c9`)
+- [x] Subtask 2 — Required-env-var validator (6 vars) (commit `ca263e8`)
+- [x] Subtask 3 — Actuator health (public) (commit `36ef64f`)
+- [x] Subtask 4 — Flyway config (commit `cc51aae`)
+- [x] Subtask 5 — Global exception handler + `{success,error,data}` 404 (commit `2f3f55a`)
+- [x] Subtask 6 — Test toolchain (Checkstyle/JaCoCo/Testcontainers) + T1/T2 tests (commit `bb9862a`)
+- [x] Subtask 7 — Reconcile repo CLAUDE.md (Maven→Gradle) + dev docs (commit `3dc40da`)
+- [x] Subtask 8 — `./gradlew check` green + manual compose `bootRun` (evidence below)
+- [x] AC#7 — bootRun startup timed at **9.885 s** (< 30 s)
+
+### Verification Evidence (2026-06-16)
+
+**Automated — `./gradlew check` green (unit + Checkstyle main/test + JaCoCo):**
+- `RequiredEnvironmentValidatorTest` — 7 tests, 0 failures (AC#4: passes with all six vars;
+  throws naming the missing one, parameterized over all six).
+
+**Automated — `./gradlew integrationTest` green (Testcontainers Postgres 15):**
+- `ApplicationContextIT` 1, `HealthEndpointIT` 2, `FlywayMigrationIT` 2,
+  `GlobalExceptionHandlerIT` 1 — 6 tests, 0 failures. Covers AC#1 (Testcontainers path),
+  AC#2, AC#3, AC#5, AC#6.
+
+**Manual — `docker compose up -d postgres` + `java -jar` against the compose DB:**
+- AC#1: app booted against compose Postgres; `Tomcat started on port 8080`.
+- AC#2/#3: `GET /actuator/health` → `200 {"status":"UP"}` (no auth header).
+- AC#5: Flyway ran (`FlywayExecutor … Database: …/auctioninsight (PostgreSQL 15.18)`).
+- AC#6: `GET /no-such-endpoint` → `404 {"success":false,"error":"Not Found","data":null}`.
+- AC#7: `Started AuctionInsightApiApplication in 9.885 seconds`.
+- AC#4 (manual smoke): booting with `AWS_REGION` unset exited `1` with
+  `MissingEnvironmentVariableException: Required environment variable is missing or blank: AWS_REGION`.
 
 ### Failed Approaches
 <!-- none yet -->
@@ -224,3 +244,23 @@ AssertJ; Checkstyle lint; JaCoCo coverage). Run command: `./gradlew check`
 - `AWS_REGION`, `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY` need placeholder values in
   `.env.example` for boot; the real `AWS_REGION` is an open question (architecture.md
   §Open Questions). JWT keys are consumed by FS-008.
+
+### Implementation notes / minor deviations (2026-06-16)
+- **Extra scaffold files beyond the plan's file list:** `.gitignore` (build/.gradle/.env)
+  and `.gitattributes` (LF `gradlew`, CRLF `*.bat`, binary jars) — repo hygiene so the
+  committed wrapper runs on Linux/CI; harmless additions.
+- **Gradle wrapper bootstrapped from the `gradle/gradle` v8.10.2 tag** (no local Gradle on the
+  dev machine); `distributionUrl` repinned from the tag's milestone build to the stable
+  `gradle-8.10.2-bin.zip`.
+- **`config/checkstyle/checkstyle-suppressions.xml`** (not in the plan's file list): a scoped
+  suppression of `AbbreviationAsWordInName` for `*IT` test classes only — the mandated Failsafe
+  `*IT` suffix is two consecutive capitals that stock google_checks flags. Production code stays
+  fully strict (`maxWarnings = 0`).
+- **JaCoCo wired (report generated) but no hard coverage-threshold gate** in this slice. The
+  unit-testable logic (the validator) is fully covered; the wired-shell beans are covered by the
+  `integrationTest` suite, which runs separately from `test`, so a per-`test` 80 % gate would be
+  misleading here. Revisit a coverage gate when business logic lands (FS-004+).
+- **Google Java style ⇒ 2-space indentation for all Java** is now the established backend
+  convention (no formatter — Spotless was rejected at plan review). Hand-maintaining
+  google_checks continuation-indent rules without a formatter is a friction point worth a Reflect
+  finding (candidate: a 4-space custom Checkstyle config, or revisit the no-formatter stance).
