@@ -22,4 +22,16 @@ class GlobalExceptionHandlerIT extends AbstractIntegrationTest {
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     assertThat(response.getBody()).isEqualTo(expected);
   }
+
+  @Test
+  void unsupportedMethodReturnsJsonEnvelopeWith405() {
+    // POST to a GET-only route → framework HttpRequestMethodNotSupportedException. Proves the
+    // ResponseEntityExceptionHandler funnel keeps the correct 4xx status and wraps it in the
+    // project envelope (not a 500, not a default ProblemDetail body).
+    ResponseEntity<String> response = restTemplate.postForEntity("/test-ping", null, String.class);
+
+    String expected = "{\"success\":false,\"error\":\"Method Not Allowed\",\"data\":null}";
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.METHOD_NOT_ALLOWED);
+    assertThat(response.getBody()).isEqualTo(expected);
+  }
 }
