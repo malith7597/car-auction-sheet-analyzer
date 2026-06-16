@@ -27,7 +27,7 @@ Python FastAPI worker application boots, connects to AWS SQS, and processes a he
 - [ ] Missing required config (e.g. `SQS_QUEUE_URL`, `AWS_REGION`) fails fast at startup, naming the missing variable (mirrors FS-001's env-validation contract)
 - [ ] `docker compose up` starts a **LocalStack** SQS service; the worker connects to it and its DLQ on boot
 - [ ] Worker receives, processes, and acknowledges (deletes) a hello-world SQS message enqueued against the LocalStack queue
-- [ ] DLQ receives a message after max receive count exceeded (verified against LocalStack — automatable, no manual AWS step)
+- [ ] DLQ receives a message after `maxReceiveCount = 3` is exceeded (verified against LocalStack — automatable, no manual AWS step)
 
 ## Scope Boundaries
 
@@ -51,7 +51,8 @@ Python FastAPI worker application boots, connects to AWS SQS, and processes a he
 - **Repo/location: `car-auction-sheet-worker/` — a new subdirectory of the existing `car-auction-sheet-analyzer` monorepo** (same layout as `car-auction-sheet-backend/` and `car-auction-sheet-frontend/`; the workspace is a single git repo rooted at the parent, not separate per-service repos). The scaffold is created during implementation, after this spec and the plan are approved.
 - Python 3.11, FastAPI (CLAUDE.md Decision #2)
 - AWS SQS Standard queue in prod (CLAUDE.md Decision #1); **LocalStack** SQS for local dev + tests
-- DLQ `maxReceiveCount` — see Open Questions (proposed default below)
+- DLQ `maxReceiveCount = 3` (confirmed at approval) — message → DLQ after the 3rd failed receive
+- `AWS_REGION = us-east-1` for local/LocalStack (arbitrary); prod region deliberately left open (architecture.md §Open Questions)
 
 ## Input Sources
 - architecture.md §Components (Python FastAPI Worker row)
@@ -59,7 +60,7 @@ Python FastAPI worker application boots, connects to AWS SQS, and processes a he
 - FS-001 (App shell — Spring Boot, shipped PR #6) — env-validation + docker-compose-substrate patterns this slice mirrors on the Python side
 
 ## Open Questions
-- **OQ-FS002-1 — DLQ `maxReceiveCount`.** Architecture left the retry count TBD. Proposed default: **3** (deliver→fail 3× → DLQ), consistent with a typical SQS Standard setup. Confirm at approval, or set a project-wide value.
-- **OQ-FS002-2 — `AWS_REGION` for local/dev.** FS-001 lists `AWS_REGION` as a required env var but the real dev region is still open (architecture.md §Open Questions). For LocalStack the region is arbitrary (e.g. `us-east-1`); the prod value can be resolved later without affecting this slice.
+- ~~**OQ-FS002-1 — DLQ `maxReceiveCount`.**~~ **Resolved 2026-06-17:** set to **3** (message → DLQ after the 3rd failed receive). Folded into Constraints + the DLQ acceptance criterion.
+- ~~**OQ-FS002-2 — `AWS_REGION` for local/dev.**~~ **Resolved 2026-06-17:** local/LocalStack uses `us-east-1` (arbitrary); the prod region stays an open architecture question and does not block this slice.
 
 ## Revisions
