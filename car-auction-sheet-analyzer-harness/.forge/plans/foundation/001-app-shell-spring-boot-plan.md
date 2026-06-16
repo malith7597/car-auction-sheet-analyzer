@@ -237,6 +237,19 @@ violations; no real secrets. Two forward-looking Nits: (1) the catch-all
 endpoints land — inert now (skeleton, no endpoints); future slices add specific handlers before
 it. (2) Singleton Testcontainers is the deliberate pattern (Ryuk cleanup), not a leak.
 
+### PR Review fixes (2026-06-17, commit `59f43fe`)
+`/forge-review-pr 6` (incl. `backend-reviewer` dispatch) returned no Blockers and two Important
+forward-looking findings, both fixed on the branch (developer-approved):
+1. **Exception handler** — `GlobalExceptionHandler` now `extends ResponseEntityExceptionHandler`
+   so framework exceptions keep correct 4xx status (405/400/…) instead of the catch-all collapsing
+   them to 500 once controllers land. A single `handleExceptionInternal` funnel re-wraps every
+   handled body in the `{success,error,data}` envelope; `Exception.class` stays the genuine 500.
+   New IT (`unsupportedMethodReturnsJsonEnvelopeWith405`) + test-only `PingTestController` prove it.
+2. **Flyway** — removed `baseline-on-migrate` (**deviation from Decision #6**, approved): greenfield
+   needs no baseline, and keeping it risked baselining a non-empty schema at v1 and skipping
+   `V1__*.sql` in FS-004. `FlywayMigrationIT` still green (history table created by `migrate()`).
+Re-verified: `./gradlew check` green; `integrationTest` green (14 tests total).
+
 ### Failed Approaches
 <!-- none yet -->
 
