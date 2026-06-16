@@ -1,9 +1,9 @@
 # FS-002 App Shell — FastAPI Worker
 
-> Status: draft
+> Status: approved
 > Author: malith3
-> Reviewed by:
-> Date: 2026-05-31 (drafted) · 2026-06-17 (finalized for approval)
+> Reviewed by: malith3 (lead)
+> Date: 2026-05-31 (drafted) · 2026-06-17 (finalized) · 2026-06-17 (approved)
 
 ## Context
 Python FastAPI worker application boots, connects to AWS SQS, and processes a hello-world job end-to-end. This is the substrate for all pipeline worker code (OCR, LLM, mesh.ai, MongoDB writes).

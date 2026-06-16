@@ -7,7 +7,7 @@
 
 project: "AuctionInsightAI"
 harness_version: "0.30.0"      # Last synced version from forge-harness template
-last_updated: "2026-06-16T12:00:00"  # ISO 8601 timestamp
+last_updated: "2026-06-17T02:00:00"  # ISO 8601 timestamp
 github_org: "malith7597"       # GitHub org/owner that all project repos live under (e.g. "acme-io").
                                # Read by /forge-deliver + /forge-pr-open for `gh ... --repo <github_org>/<repo>`
                                # and by the dashboard (window.TRACKER.github_org) to build PR links.
@@ -57,7 +57,7 @@ setup:
     # Discipline rule: foundation = anything required to run the app and write a
     # user-story feature spec. User-visible behavior with its own flows = feature.
     status: in-progress          # not-started | in-progress | done
-    last_updated: "2026-06-16"   # ISO date when the slice list or status last changed
+    last_updated: "2026-06-17"   # ISO date when the slice list or status last changed
     owner: malith3               # Lead/dev responsible for the foundation phase as a whole (slice-level assignees live below)
     backlog_source: ".forge/design/architecture.md → Foundation Backlog section"
     review_completed: null       # ISO date of the manual foundation review session
@@ -78,11 +78,11 @@ setup:
         title: "App shell — FastAPI worker"
         spec: .forge/specs/foundation/002-app-shell-fastapi-worker-spec.md
         plan: .forge/plans/foundation/002-app-shell-fastapi-worker-plan.md
-        status: spec
-        assignee: null
-        started: null
-        last_updated: "2026-06-01"
-        notes: "FastAPI worker boots, connects to SQS, processes a hello-world job end-to-end. Repo: <worker-repo>"
+        status: plan
+        assignee: malith3
+        started: "2026-06-17"
+        last_updated: "2026-06-17"
+        notes: "Spec approved 2026-06-17 (OQs resolved: DLQ maxReceiveCount=3, local AWS_REGION=us-east-1, prod region open). Location: car-auction-sheet-worker/ subdir in monorepo. Local SQS = LocalStack via docker-compose. Plan in progress."
 
       - id: FS-003
         title: "App shell — React SPA"

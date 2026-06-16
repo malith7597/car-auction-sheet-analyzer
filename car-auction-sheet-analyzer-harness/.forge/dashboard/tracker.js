@@ -1,8 +1,9 @@
 /* Generated from ../tracker.yaml by hooks/regen-tracker-dashboard.sh. Do not edit. */
-window.TRACKER = {
+window.TRACKER =
+{
   "project": "AuctionInsightAI",
   "harness_version": "0.30.0",
-  "last_updated": "2026-06-16T12:00:00",
+  "last_updated": "2026-06-17T02:00:00",
   "github_org": "malith7597",
   "setup": {
     "status": "in-progress",
@@ -23,7 +24,7 @@ window.TRACKER = {
     },
     "foundation": {
       "status": "in-progress",
-      "last_updated": "2026-06-16",
+      "last_updated": "2026-06-17",
       "owner": "malith3",
       "backlog_source": ".forge/design/architecture.md → Foundation Backlog section",
       "review_completed": null,
@@ -46,11 +47,11 @@ window.TRACKER = {
           "title": "App shell — FastAPI worker",
           "spec": ".forge/specs/foundation/002-app-shell-fastapi-worker-spec.md",
           "plan": ".forge/plans/foundation/002-app-shell-fastapi-worker-plan.md",
-          "status": "spec",
-          "assignee": null,
-          "started": null,
-          "last_updated": "2026-06-01",
-          "notes": "FastAPI worker boots, connects to SQS, processes a hello-world job end-to-end. Repo: <worker-repo>"
+          "status": "plan",
+          "assignee": "malith3",
+          "started": "2026-06-17",
+          "last_updated": "2026-06-17",
+          "notes": "Spec approved 2026-06-17 (OQs resolved: DLQ maxReceiveCount=3, local AWS_REGION=us-east-1, prod region open). Location: car-auction-sheet-worker/ subdir in monorepo. Local SQS = LocalStack via docker-compose. Plan in progress."
         },
         {
           "id": "FS-003",
@@ -483,4 +484,5 @@ window.TRACKER = {
   },
   "bugs": []
 }
+
 ;
