@@ -229,6 +229,14 @@ AssertJ; Checkstyle lint; JaCoCo coverage). Run command: `./gradlew check`
 - AC#4 (manual smoke): booting with `AWS_REGION` unset exited `1` with
   `MissingEnvironmentVariableException: Required environment variable is missing or blank: AWS_REGION`.
 
+### Pre-PR Review (2026-06-16)
+Ran the `/forge-pre-pr-review` protocol inline (skill disabled for model invocation). **Verdict:
+Ready to push** — no Blockers, no Important. All 7 ACs map to tests/evidence; no locked-AD
+violations; no real secrets. Two forward-looking Nits: (1) the catch-all
+`@ExceptionHandler(Exception.class)` → 500 will blanket client errors (405/415/400) once real
+endpoints land — inert now (skeleton, no endpoints); future slices add specific handlers before
+it. (2) Singleton Testcontainers is the deliberate pattern (Ryuk cleanup), not a leak.
+
 ### Failed Approaches
 <!-- none yet -->
 
