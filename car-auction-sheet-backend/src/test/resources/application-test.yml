@@ -1,0 +1,12 @@
+# Test profile.
+#
+# The six mandatory env vars are given placeholder values so RequiredEnvironmentValidator (which
+# runs during environment preparation, before @DynamicPropertySource is applied) passes. The real
+# datasource connection is supplied per-test from the Testcontainers Postgres instance via
+# AbstractIntegrationTest#datasourceProperties, which overrides spring.datasource.*.
+DB_URL: jdbc:postgresql://localhost:5432/placeholder
+DB_USERNAME: placeholder
+DB_PASSWORD: placeholder
+AWS_REGION: us-east-1
+JWT_PRIVATE_KEY: cGxhY2Vob2xkZXItcHJpdmF0ZS1rZXk=
+JWT_PUBLIC_KEY: cGxhY2Vob2xkZXItcHVibGljLWtleQ==

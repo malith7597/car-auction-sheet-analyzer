@@ -9,16 +9,19 @@ package com.auctioninsightai.api.dto;
  * {@code {"success":false,"error":"…","data":null}}.
  *
  * @param <T> the payload type on success
+ * @param success whether the request succeeded
+ * @param error the error message on failure, otherwise {@code null}
+ * @param data the payload on success, otherwise {@code null}
  */
 public record ApiResponse<T>(boolean success, String error, T data) {
 
-    /** Success envelope carrying a payload and no error. */
-    public static <T> ApiResponse<T> ok(T data) {
-        return new ApiResponse<>(true, null, data);
-    }
+  /** Success envelope carrying a payload and no error. */
+  public static <T> ApiResponse<T> ok(T data) {
+    return new ApiResponse<>(true, null, data);
+  }
 
-    /** Failure envelope carrying an error message and no payload. */
-    public static <T> ApiResponse<T> error(String message) {
-        return new ApiResponse<>(false, message, null);
-    }
+  /** Failure envelope carrying an error message and no payload. */
+  public static <T> ApiResponse<T> error(String message) {
+    return new ApiResponse<>(false, message, null);
+  }
 }

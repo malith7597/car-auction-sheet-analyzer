@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<suppressions>
+  <!--
+    Integration tests follow the mandated *IT suffix (Failsafe convention; backend CLAUDE.md
+    Testing Approach). The trailing "IT" is two consecutive capitals, which AbbreviationAsWordInName
+    flags. Suppress that one check for *IT test classes only; production code remains fully strict.
+  -->
+  <suppress checks="AbbreviationAsWordInName" files="[/\\]src[/\\]test[/\\].*IT\.java$"/>
+</suppressions>

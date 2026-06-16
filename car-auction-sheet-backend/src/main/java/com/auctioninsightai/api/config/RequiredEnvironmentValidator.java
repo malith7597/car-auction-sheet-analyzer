@@ -18,27 +18,28 @@ import org.springframework.util.StringUtils;
  */
 public class RequiredEnvironmentValidator {
 
-    /** Mandatory variables, in validation order. Public so tests can parameterize over all six. */
-    public static final List<String> REQUIRED_VARIABLES = List.of(
-            "DB_URL",
-            "DB_USERNAME",
-            "DB_PASSWORD",
-            "AWS_REGION",
-            "JWT_PRIVATE_KEY",
-            "JWT_PUBLIC_KEY");
+  /** Mandatory variables, in validation order. Public so tests can parameterize over all six. */
+  public static final List<String> REQUIRED_VARIABLES =
+      List.of(
+          "DB_URL",
+          "DB_USERNAME",
+          "DB_PASSWORD",
+          "AWS_REGION",
+          "JWT_PRIVATE_KEY",
+          "JWT_PUBLIC_KEY");
 
-    /**
-     * Throws {@link MissingEnvironmentVariableException} naming the first variable that is absent
-     * or blank. Returns normally when all required variables are present.
-     *
-     * @param environment the Spring environment to read variables from
-     */
-    public void validate(Environment environment) {
-        for (String name : REQUIRED_VARIABLES) {
-            String value = environment.getProperty(name);
-            if (!StringUtils.hasText(value)) {
-                throw new MissingEnvironmentVariableException(name);
-            }
-        }
+  /**
+   * Throws {@link MissingEnvironmentVariableException} naming the first variable that is absent or
+   * blank. Returns normally when all required variables are present.
+   *
+   * @param environment the Spring environment to read variables from
+   */
+  public void validate(Environment environment) {
+    for (String name : REQUIRED_VARIABLES) {
+      String value = environment.getProperty(name);
+      if (!StringUtils.hasText(value)) {
+        throw new MissingEnvironmentVariableException(name);
+      }
     }
+  }
 }

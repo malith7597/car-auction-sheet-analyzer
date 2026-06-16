@@ -21,20 +21,20 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+  private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    /** Unmapped path → 404 {@code {"success":false,"error":"Not Found","data":null}}. */
-    @ExceptionHandler(NoHandlerFoundException.class)
-    public ResponseEntity<ApiResponse<Object>> handleNotFound(NoHandlerFoundException ex) {
-        log.warn("No handler for {} {}", ex.getHttpMethod(), ex.getRequestURL());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("Not Found"));
-    }
+  /** Unmapped path → 404 {@code {"success":false,"error":"Not Found","data":null}}. */
+  @ExceptionHandler(NoHandlerFoundException.class)
+  public ResponseEntity<ApiResponse<Object>> handleNotFound(NoHandlerFoundException ex) {
+    log.warn("No handler for {} {}", ex.getHttpMethod(), ex.getRequestURL());
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("Not Found"));
+  }
 
-    /** Catch-all → 500 with a generic message; the real cause is logged, never returned. */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Object>> handleUnexpected(Exception ex) {
-        log.error("Unhandled exception", ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("Internal Server Error"));
-    }
+  /** Catch-all → 500 with a generic message; the real cause is logged, never returned. */
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ApiResponse<Object>> handleUnexpected(Exception ex) {
+    log.error("Unhandled exception", ex);
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(ApiResponse.error("Internal Server Error"));
+  }
 }

@@ -9,16 +9,16 @@ import org.springframework.core.env.ConfigurableEnvironment;
  * mandatory environment variable aborts startup early with a named-variable error.
  *
  * <p>Registered via {@code META-INF/spring.factories}. {@link EnvironmentPostProcessor}s execute
- * during environment preparation — before bean creation — which is exactly the fail-fast window
- * the FS-001 contract requires.
+ * during environment preparation — before bean creation — which is exactly the fail-fast window the
+ * FS-001 contract requires.
  */
 public class EnvironmentValidationPostProcessor implements EnvironmentPostProcessor {
 
-    private final RequiredEnvironmentValidator validator = new RequiredEnvironmentValidator();
+  private final RequiredEnvironmentValidator validator = new RequiredEnvironmentValidator();
 
-    @Override
-    public void postProcessEnvironment(
-            ConfigurableEnvironment environment, SpringApplication application) {
-        validator.validate(environment);
-    }
+  @Override
+  public void postProcessEnvironment(
+      ConfigurableEnvironment environment, SpringApplication application) {
+    validator.validate(environment);
+  }
 }
