@@ -3,7 +3,7 @@ window.TRACKER =
 {
   "project": "AuctionInsightAI",
   "harness_version": "0.30.0",
-  "last_updated": "2026-06-17T02:00:00",
+  "last_updated": "2026-06-17T03:00:00",
   "github_org": "malith7597",
   "setup": {
     "status": "in-progress",
@@ -47,11 +47,11 @@ window.TRACKER =
           "title": "App shell — FastAPI worker",
           "spec": ".forge/specs/foundation/002-app-shell-fastapi-worker-spec.md",
           "plan": ".forge/plans/foundation/002-app-shell-fastapi-worker-plan.md",
-          "status": "plan",
+          "status": "dev",
           "assignee": "malith3",
           "started": "2026-06-17",
           "last_updated": "2026-06-17",
-          "notes": "Spec approved 2026-06-17 (OQs resolved: DLQ maxReceiveCount=3, local AWS_REGION=us-east-1, prod region open). Location: car-auction-sheet-worker/ subdir in monorepo. Local SQS = LocalStack via docker-compose. Plan in progress."
+          "notes": "Spec + plan approved 2026-06-17 (plan via /forge-plan-review single-pass: 0 blockers, 4 important + 3 nits fixed). Location: car-auction-sheet-worker/ subdir in monorepo. Stack: Python 3.11/FastAPI/boto3, uv + Ruff(+format)+mypy, pytest (T1) + testcontainers-localstack (T2). Local SQS = LocalStack docker-compose, DLQ maxReceiveCount=3. Spring Boot->worker round-trip deferred to FS-006. Ready for implementation."
         },
         {
           "id": "FS-003",

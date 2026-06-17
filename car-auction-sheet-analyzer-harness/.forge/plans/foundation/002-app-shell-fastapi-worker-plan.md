@@ -1,10 +1,11 @@
 # FS-002 App Shell — FastAPI Worker — Plan
 
 > Spec: `.forge/specs/foundation/002-app-shell-fastapi-worker-spec.md`
-> Status: draft
+> Status: approved
 > Author: malith3
-> Reviewed by:
-> Date: 2026-06-17 (drafted)
+> Reviewed by: malith3 (lead)
+> Date: 2026-06-17 (drafted) · 2026-06-17 (approved after single-pass review)
+> Reviewed-via: /forge-plan-review (single-pass, 2026-06-17)
 
 ## Approach
 
@@ -61,10 +62,11 @@ wires Docker into CI — exactly the `test` vs `integrationTest` split FS-001 es
 ### 1. Python + FastAPI scaffold, tooling, `/health`
 - **What:** Initialize `car-auction-sheet-worker/` with `uv` (`pyproject.toml`, `uv.lock`),
   Ruff + mypy config, the `app/` package, a FastAPI app exposing `GET /health` →
-  `{"status":"ok"}`, and `app/logging.py` (basic JSON logger; full wiring FS-013).
-  `uvicorn app.main:app` boots clean.
+  `{"status":"ok"}`, and `app/log_config.py` (basic JSON logger; full wiring FS-013 — named
+  `log_config`, not `logging`, to avoid shadowing the stdlib module). `uvicorn app.main:app`
+  boots clean.
 - **Files:** `pyproject.toml`, `uv.lock`, `app/__init__.py`, `app/main.py`,
-  `app/logging.py`, `.gitignore`, `.dockerignore`, `ruff.toml` (or `[tool.ruff]` in pyproject)
+  `app/log_config.py`, `.gitignore`, `.dockerignore`, `ruff.toml` (or `[tool.ruff]` in pyproject)
 - **Pattern:** standard FastAPI app-factory; mirrors FS-001 subtask 1 (scaffold + boot).
 
 ### 2. Config loading + fail-fast validation (named)
@@ -99,12 +101,14 @@ wires Docker into CI — exactly the `test` vs `integrationTest` split FS-001 es
 - **Pattern:** FS-001 `docker-compose.yml` (Postgres) analog.
 
 ### 6. Tests — T1 unit + T2 LocalStack integration
-- **What:** T1: `test_config.py` (passes when all set; raises named error per missing var),
+- **What:** T1: `test_health.py` (FastAPI `TestClient` — `/health`, no Docker),
+  `test_config.py` (passes when all set; raises named error per missing var),
   `test_hello_world.py` (handler logic). T2: `test_consumer_it.py` against
   testcontainers-localstack — (a) enqueue → worker consumes + deletes; (b) a handler that
   always fails → message lands on DLQ after `maxReceiveCount = 3`.
-- **Files:** `tests/__init__.py`, `tests/conftest.py`, `tests/unit/test_config.py`,
-  `tests/unit/test_hello_world.py`, `tests/integration/test_consumer_it.py`
+- **Files:** `tests/__init__.py`, `tests/conftest.py`, `tests/unit/test_health.py`,
+  `tests/unit/test_config.py`, `tests/unit/test_hello_world.py`,
+  `tests/integration/test_consumer_it.py`
 - **Pattern:** FS-001 `RequiredEnvironmentValidatorTest` + `AbstractIntegrationTest`
   (Testcontainers) analog. Integration tests marked `@pytest.mark.integration`.
 
@@ -117,6 +121,19 @@ wires Docker into CI — exactly the `test` vs `integrationTest` split FS-001 es
   `car-auction-sheet-worker/.env.example`, `.claude/CLAUDE.md` (Reference Map row)
 - **Pattern:** FS-001 subtask 7 (reconcile) — here it's *authoring* the profile from scratch.
 
+### 8. Compose-boot verification + startup timing (manual)
+- **What:** With the default `pytest` + `ruff`/`mypy` checks green, verify the **docker-compose
+  path the spec ACs literally assert** (distinct from the testcontainers T2 suite): run
+  `docker compose up` (LocalStack), boot `uvicorn app.main:app` + the consumer against the
+  **compose** stack, run `scripts/send-hello.py`, and confirm consume→delete + DLQ wiring
+  against the compose queue/DLQ. **Time the `uvicorn` cold start and assert `< 15 s`** (spec
+  NFR). Record the exact commands, output, and the measured startup time in `## Progress`,
+  and state which ACs the compose path covers (docker-compose/LocalStack boot AC + `<15s`
+  NFR) vs. which the testcontainers T2 suite covers (consume/ack, DLQ).
+- **Files:** none (verification only)
+- **Pattern:** FS-001 subtask 8 (manual `bootRun`-against-compose check + recorded startup
+  time, e.g. FS-001's 9.885 s).
+
 ## Files to Modify
 
 | File | Repo | Change |
@@ -125,7 +142,7 @@ wires Docker into CI — exactly the `test` vs `integrationTest` split FS-001 es
 | `ruff.toml` | worker | New — Ruff lint+format config (or `[tool.ruff]` in pyproject) |
 | `app/main.py`, `app/__init__.py` | worker | New — FastAPI app, `/health`, lifespan starts consumer |
 | `app/config.py`, `app/errors.py` | worker | New — pydantic-settings + fail-fast named validation |
-| `app/logging.py` | worker | New — basic JSON logger |
+| `app/log_config.py` | worker | New — basic JSON logger (named to avoid stdlib `logging` shadow) |
 | `app/sqs/client.py`, `app/sqs/consumer.py`, `app/sqs/__init__.py` | worker | New — boto3 client factory + consumer loop |
 | `app/handlers/hello_world.py`, `app/handlers/__init__.py` | worker | New — hello-world handler + registry |
 | `docker-compose.yml` | worker | New — LocalStack SQS |
@@ -154,6 +171,7 @@ tier-match / AC-coverage) do not bind, but every spec AC maps to a test row belo
 
 | Test | Proves | Spec AC |
 |------|--------|---------|
+| `test_health.py::health_ok` | `GET /health` → `{"status":"ok"}` via FastAPI `TestClient` (no SQS/Docker) | health AC |
 | `test_config.py::passes_when_all_set` | Settings load when all required vars present | env-validation AC |
 | `test_config.py::raises_named_error_per_missing_var` (parametrized over the 6 vars) | Fail-fast names the first missing/blank var, never its value | env-validation AC |
 | `test_hello_world.py::handles_valid_payload` | Handler parses + succeeds on a hello-world message | consume/process AC |
@@ -162,13 +180,19 @@ tier-match / AC-coverage) do not bind, but every spec AC maps to a test row belo
 
 | Test | Proves | Spec AC |
 |------|--------|---------|
-| `test_consumer_it.py::health_ok` | `GET /health` → `{"status":"ok"}` against the booted app | health AC |
-| `test_consumer_it.py::consumes_and_deletes_message` | Worker connects to LocalStack SQS, receives + processes + deletes a hello-world message | consume/ack AC + docker-compose/LocalStack AC |
+| `test_consumer_it.py::consumes_and_deletes_message` | Worker connects to LocalStack SQS, receives + processes + deletes a hello-world message | consume/ack AC |
 | `test_consumer_it.py::message_lands_on_dlq_after_3_failures` | A always-failing handler → message on DLQ after `maxReceiveCount = 3` | DLQ AC |
 
 Run commands (final form set in subtask 1): `uv run pytest` (T1, default) ·
 `uv run pytest -m integration` (T2, Docker required). Coverage tool: `coverage`/`pytest-cov`
 (report-only this slice; hard gate deferred to when business logic lands, per FS-001/L-001).
+
+**Two substrates, two AC owners.** The T2 rows above run against **testcontainers-localstack**
+(ephemeral, harness-provisioned) and own the consume/ack + DLQ ACs in CI. The spec's
+**`docker compose up` boot AC** and the **`<15s` startup NFR** are owned by the **subtask-8
+manual compose-boot verification** — they exercise the `docker-compose.yml` +
+`scripts/init-localstack.sh` path the AC literally asserts, which the testcontainers suite does
+not touch. Both paths must pass for the slice to ship.
 
 ## Progress
 <!-- Updated during implementation. Mark subtasks as done, note discoveries. -->
@@ -179,6 +203,7 @@ Run commands (final form set in subtask 1): `uv run pytest` (T1, default) ·
 - [ ] Subtask 5 — LocalStack docker-compose + provisioning
 - [ ] Subtask 6 — T1 + T2 tests
 - [ ] Subtask 7 — Stack Profile + docs + harness reference
+- [ ] Subtask 8 — compose-boot verification + startup timing (`<15s` NFR)
 
 ### Failed Approaches
 <!-- none yet -->
@@ -191,4 +216,17 @@ Run commands (final form set in subtask 1): `uv run pytest` (T1, default) ·
   never real secrets (LocalStack accepts `test`/`test`).
 - `AWS_REGION = us-east-1` for local (spec OQ-FS002-2); prod region stays an open architecture
   question and does not block this slice.
+- The actual boot command is **`uvicorn app.main:app`** (the spec AC's `uvicorn main:app` was
+  illustrative, written before the `app/` package layout was fixed in Decision #2).
 - Spring Boot → worker cross-service round-trip is **FS-006**, not this slice.
+- **Deviation — config contract (spec FR vs plan Decision #5):** the spec's config FR lists
+  `MongoDB URI` ("…, etc."). This plan **defers `MONGODB_URI` to FS-005** (MongoDB is out of
+  scope here) and trims the required set to what the worker actually uses to boot + consume.
+  The **FS-005 plan owns** adding `MONGODB_URI` to the worker config contract — recorded here
+  so the cascade stays traceable.
+- **Reconciliation — hello-world origin (spec FR vs approved AC):** the spec FR wording says
+  *"Spring Boot enqueues a test message → worker receives"*, but the approved **AC** requires
+  only a message *"enqueued against the LocalStack queue"* (no Spring Boot). This slice
+  satisfies the **AC** with a local dev producer (`scripts/send-hello.py`); the Spring
+  Boot → worker round-trip is **FS-006**. No spec revision needed — the AC is the contract and
+  it is met; the FR phrasing is forward-looking to FS-006.
